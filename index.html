@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BalanCoffee - Đặt Món Mang Đi</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-coffee"></i>
+                <h1>BalanCoffee</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleAdmin()">
+                    <i class="fas fa-chart-bar"></i>
+                    Quản lý
+                </button>                <button class="cart-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-receipt"></i>
+                    Hóa đơn (<span id="invoice-count">0</span>)
+                </button>
+            </div>
+        </header>        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Menu Section -->            <section class="menu-section">
+                <h2>Menu Đồ Uống</h2>
+
+                <div class="menu-categories">
+                    <button class="category-btn active" data-category="all">Tất cả</button>
+                    <button class="category-btn" data-category="cafe-viet">Cà phê Việt</button>
+                    <button class="category-btn" data-category="cafe-y">Cà phê Ý</button>
+                    <button class="category-btn" data-category="tra-trai-cay">Trà trái cây</button>
+                    <button class="category-btn" data-category="matcha">Matcha</button>
+                    <button class="category-btn" data-category="soda">Soda</button>
+                    <button class="category-btn" data-category="cacao">Cacao</button>
+                </div>
+                <div class="menu-grid" id="menu-grid">
+                    <!-- Menu items will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Admin Section -->
+            <section class="admin-section" id="admin-section" style="display: none;">
+                <h2>Tổng Kết Doanh Thu</h2>
+                <div class="admin-controls">
+                    <div class="date-filter">
+                        <label for="date-filter">Chọn ngày:</label>
+                        <input type="date" id="date-filter" onchange="filterByDate()">
+                        <button class="btn btn-primary" onclick="exportData()">Xuất báo cáo</button>
+                    </div>
+                </div>
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <h3>Tổng đơn hàng</h3>
+                        <p id="total-orders">0</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Doanh thu</h3>
+                        <p id="total-revenue">0₫</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Món bán chạy</h3>
+                        <p id="best-seller">-</p>
+                    </div>
+                </div>
+                <div class="order-history">
+                    <h3>Lịch sử đơn hàng</h3>
+                    <div id="order-history-list">
+                        <!-- Order history will be populated here -->
+                    </div>
+                </div>
+            </section>
+        </main>        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">            <div class="sidebar-header">
+                <h3>Danh sách hóa đơn</h3>
+                <button class="close-sidebar" onclick="toggleSidebar()" title="Ẩn/Hiện sidebar">
+                    <i class="fas fa-angle-right"></i>
+                </button>
+            </div>
+            <div class="invoice-list" id="invoice-list">
+                <!-- Invoice items will be populated here -->
+            </div>            <div class="sidebar-actions">
+                <button class="btn btn-success btn-full" onclick="createNewInvoice()">
+                    <i class="fas fa-plus"></i> Tạo hóa đơn mới
+                </button>
+                <div class="sidebar-controls" id="sidebar-controls" style="display: none;">
+                    <button class="btn btn-secondary btn-half" onclick="deselectInvoice()">
+                        <i class="fas fa-times"></i> Hủy chọn
+                    </button>
+                    <button class="btn btn-danger btn-half" onclick="deleteInvoiceById(currentInvoiceId)">
+                        <i class="fas fa-trash"></i> Xóa hóa đơn
+                    </button>
+                </div>
+            </div>
+        </aside>        <!-- Order Creation Modal -->
+        <div class="modal" id="order-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="order-modal-title">Tạo hóa đơn mới</h3>
+                    <button class="close-modal" onclick="closeOrderModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>                <div class="modal-body">
+                    <div class="menu-instruction">
+                        <p><i class="fas fa-info-circle"></i> Chọn món từ menu bên dưới để thêm vào hóa đơn</p>
+                    </div>
+                    <div class="current-order">
+                        <h4>Thức uống đã chọn</h4>
+                        <div class="order-items" id="order-items">
+                            <!-- Order items will be populated here -->
+                        </div>
+                        <div class="order-total">
+                            <strong>Tổng cộng: <span id="order-total">0₫</span></strong>
+                        </div>
+                    </div>
+                    <div class="order-actions">
+                        <button class="btn btn-secondary" onclick="closeOrderModal()">Hủy</button>
+                        <button class="btn btn-danger" onclick="deleteInvoice()" id="delete-invoice-btn" style="display: none;">
+                            <i class="fas fa-trash"></i> Xóa hóa đơn
+                        </button>
+                        <button class="btn btn-primary" onclick="confirmOrder()" id="confirm-order-btn" disabled>
+                            <span id="order-action-text">Tạo hóa đơn</span>
+                        </button>
+                        <button class="btn btn-success" onclick="proceedToPayment()" id="payment-btn" style="display: none;">
+                            Thanh toán
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>        <!-- Payment Modal -->
+        <div class="modal" id="payment-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="payment-modal-title">Thanh toán hóa đơn</h3>
+                    <button class="close-modal" onclick="closePaymentModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="payment-info">
+                        <h4>Chi tiết hóa đơn</h4>
+                        <div id="payment-order-summary"></div>
+                        <div class="total-payment">
+                            <strong>Tổng thanh toán: <span id="payment-total">0₫</span></strong>
+                        </div>
+                    </div>
+                    <div class="qr-section">
+                        <h4>Quét mã QR để thanh toán</h4>                        <div class="qr-code-container">
+                            <img src="qr_code.png" alt="QR Code thanh toán" id="qr-image" 
+                                 style="max-width: 200px; height: auto;">
+                            <div id="qr-fallback" style="display: none;">
+                                <canvas id="qr-code"></canvas>
+                            </div>
+                        </div>
+                        <p class="payment-instruction">
+                            Sử dụng ứng dụng ngân hàng để quét mã QR và thanh toán
+                        </p>
+                    </div>
+                    <div class="payment-actions">
+                        <button class="btn btn-success btn-full" onclick="confirmPayment()">
+                            Xác nhận đã thanh toán
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Modal -->
+        <div class="modal" id="success-modal">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <i class="fas fa-check-circle success-icon"></i>
+                    <h3>Đặt hàng thành công!</h3>
+                    <p>Cảm ơn bạn đã đặt hàng. Đơn hàng của bạn đang được chuẩn bị.</p>
+                    <button class="btn btn-primary" onclick="closeSuccessModal()">
+                        Đóng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

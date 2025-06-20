@@ -1,0 +1,28 @@
+{
+  "name": "balancoffee-takeaway-order",
+  "version": "1.0.0",
+  "description": "BalanCoffee - Hệ thống đặt món mang đi đơn giản",
+  "main": "index.html",
+  "scripts": {
+    "start": "live-server --port=3000 --host=localhost --open=/index.html",
+    "build": "echo 'Build complete - static files ready'",
+    "dev": "live-server --port=3000 --host=localhost --open=/index.html"
+  },
+  "keywords": [
+    "coffee",
+    "takeaway",
+    "order",
+    "pos",
+    "vietnam"
+  ],
+  "author": "BalanCoffee Team",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/username/balancoffee-takeaway-order.git"
+  },
+  "homepage": "https://username.github.io/balancoffee-takeaway-order/"
+}

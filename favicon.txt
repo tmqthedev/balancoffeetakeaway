@@ -1,0 +1,11 @@
+# Favicon for BalanCoffee
+
+This file serves as a placeholder to prevent 404 errors for favicon.ico requests.
+The actual favicon is defined in HTML using inline SVG with coffee emoji ☕.
+
+If you want to create a custom favicon.ico file, you can:
+1. Create a 16x16, 32x32, or 48x48 pixel image
+2. Convert it to .ico format using online tools
+3. Replace this file with the actual favicon.ico
+
+Current solution uses inline SVG favicon which is modern and supported by all browsers.
