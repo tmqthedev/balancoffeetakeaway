@@ -5,6 +5,7 @@ let currentInvoiceId = null; // ID hóa đơn đang được xem/chỉnh sửa
 let currentCategory = 'all';
 let isAdminMode = false;
 let orderHistory = loadOrderHistory();
+let shiftStartTime = getShiftStartTime(); // Thời gian bắt đầu ca
 
 
 // Fallback menu data nếu data.js không load được
@@ -63,12 +64,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         console.log('✅ menuData loaded successfully:', menuData.length, 'items');
-        
-        // Load data first
+          // Load data first
         invoices = loadInvoices();
         orderHistory = loadOrderHistory();
         
+        // Initialize shift start time
+        shiftStartTime = getShiftStartTime();
+        
         console.log('✅ Data loaded - Invoices:', invoices.length, 'Orders:', orderHistory.length);
+        console.log('⏰ Shift started at:', new Date(shiftStartTime).toLocaleString());
         
         // Debug: Check if createNewInvoice function exists
         console.log('🔍 createNewInvoice function exists:', typeof createNewInvoice === 'function');
@@ -99,12 +103,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Main content should have sidebar margin
             }
         }
-        
-        console.log('🎨 Rendering UI components...');
+          console.log('🎨 Rendering UI components...');
         renderMenu();
         updateInvoiceDisplay();
         updateInvoiceCount();
-        loadTodaysSummary();
         
         // Add category filter event listeners
         const categoryButtons = document.querySelectorAll('.category-btn');
@@ -1296,42 +1298,44 @@ function loadAdminData() {
     // Reload dữ liệu từ localStorage
     orderHistory = loadOrderHistory();
     
-    // Set ngày hiện tại làm mặc định
-    const dateFilter = document.getElementById('date-filter');
-    if (dateFilter && !dateFilter.value) {
-        const today = new Date().toISOString().split('T')[0];
-        dateFilter.value = today;
-    }
-    
-    // Filter và hiển thị dữ liệu
-    filterByDate();
+    // Hiển thị dữ liệu ca hiện tại
+    displayCurrentShiftData();
 }
 
-// Filter orders by date
-function filterByDate() {
-    const dateFilter = document.getElementById('date-filter');
-    if (!dateFilter) return;
-    
-    const selectedDate = dateFilter.value;
-    if (!selectedDate) return;
-    
-    // Đảm bảo orderHistory đã được load
+// Get shift start time
+function getShiftStartTime() {
+    let startTime = localStorage.getItem('shiftStartTime');
+    if (!startTime) {
+        startTime = new Date().toISOString();
+        localStorage.setItem('shiftStartTime', startTime);
+    }
+    return startTime;
+}
+
+// Display current shift data
+function displayCurrentShiftData() {
+    const currentShiftOrders = getCurrentShiftOrders();
+    updateCurrentShiftSummary(currentShiftOrders);
+    displayCurrentShiftOrders(currentShiftOrders);
+}
+
+// Get orders from current shift
+function getCurrentShiftOrders() {
     if (!orderHistory || orderHistory.length === 0) {
         orderHistory = loadOrderHistory();
     }
     
-    const filteredOrders = orderHistory.filter(order => {
-        if (!order.timestamp) return false;
-        const orderDate = order.timestamp.split('T')[0];
-        return orderDate === selectedDate;
-    });
+    const currentShiftStart = new Date(shiftStartTime);
     
-    updateSummaryCards(filteredOrders);
-    displayOrderHistory(filteredOrders);
+    return orderHistory.filter(order => {
+        if (!order.timestamp) return false;
+        const orderDate = new Date(order.timestamp);
+        return orderDate >= currentShiftStart;
+    });
 }
 
-// Update summary cards
-function updateSummaryCards(orders) {
+// Update current shift summary cards
+function updateCurrentShiftSummary(orders) {
     if (!orders) orders = [];
     
     const totalOrders = orders.length;
@@ -1348,114 +1352,261 @@ function updateSummaryCards(orders) {
             });
         }
     });
-      const bestSeller = Object.keys(itemCount).length > 0 
-        ? Object.keys(itemCount).reduce((a, b) => itemCount[a] > itemCount[b] ? a : b, Object.keys(itemCount)[0])
-        : '-';
     
-    // Cập nhật DOM elements một cách an toàn
-    const totalOrdersEl = document.getElementById('total-orders');
-    const totalRevenueEl = document.getElementById('total-revenue');
-    const bestSellerEl = document.getElementById('best-seller');
+    let bestSeller = '-';
+    let maxCount = 0;
+    for (const [itemName, count] of Object.entries(itemCount)) {
+        if (count > maxCount) {
+            maxCount = count;
+            bestSeller = `${itemName} (${count})`;
+        }
+    }
+    
+    // Update UI
+    const totalOrdersEl = document.getElementById('current-shift-orders');
+    const totalRevenueEl = document.getElementById('current-shift-revenue');
+    const bestSellerEl = document.getElementById('current-shift-bestseller');
     
     if (totalOrdersEl) totalOrdersEl.textContent = totalOrders;
     if (totalRevenueEl) totalRevenueEl.textContent = formatPrice(totalRevenue);
     if (bestSellerEl) bestSellerEl.textContent = bestSeller;
 }
 
-// Display order history
-function displayOrderHistory(orders) {
-    const historyList = document.getElementById('order-history-list');
-    
-    if (!historyList) {
-        console.log('Element order-history-list not found');
-        return;
-    }
+// Display current shift orders
+function displayCurrentShiftOrders(orders) {
+    const container = document.getElementById('current-shift-list');
+    if (!container) return;
     
     if (!orders || orders.length === 0) {
-        historyList.innerHTML = '<p style="text-align: center; color: #666; padding: 20px;">Không có đơn hàng nào trong ngày này</p>';
+        container.innerHTML = '<p class="no-orders">Chưa có đơn hàng nào trong ca này.</p>';
         return;
     }
     
-    historyList.innerHTML = orders.map(order => {
-        const orderDate = order.timestamp ? formatDateTime(order.timestamp) : 'Không rõ';
-        const orderItems = order.items && Array.isArray(order.items) 
-            ? order.items.map(item => `${item.name} (x${item.quantity})`).join(', ')
-            : 'Không có món nào';
-        
-        return `
-            <div class="order-history-item">
-                <h4>Đơn hàng #${order.id}</h4>
-                <p><strong>Thời gian:</strong> ${orderDate}</p>
-                <p><strong>Tổng tiền:</strong> ${formatPrice(order.total || 0)}</p>
-                <p><strong>Món:</strong> ${orderItems}</p>
-                <p><strong>Trạng thái:</strong> <span class="status ${order.status}">${order.status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}</span></p>
+    const ordersHTML = orders.map(order => `
+        <div class="order-item">
+            <div class="order-header">
+                <span class="order-id">#${order.id}</span>
+                <span class="order-time">${formatDateTime(order.timestamp)}</span>
+                <span class="order-total">${formatPrice(order.total)}</span>
             </div>
-        `;
-    }).join('');
+            <div class="order-details">
+                ${order.items ? order.items.map(item => 
+                    `<span class="order-item-detail">${item.quantity}x ${item.name}</span>`
+                ).join(', ') : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = ordersHTML;
 }
 
-// Load today's summary
-function loadTodaysSummary() {
-    // Đảm bảo orderHistory đã được load
-    if (!orderHistory || orderHistory.length === 0) {
-        orderHistory = loadOrderHistory();
-    }
-    
-    const today = new Date().toISOString().split('T')[0];
-    const todayOrders = orderHistory.filter(order => {
-        if (!order.timestamp) return false;
-        const orderDate = order.timestamp.split('T')[0];
-        return orderDate === today;
-    });
-    
-    updateSummaryCards(todayOrders);
+// View current shift details
+function viewCurrentShift() {
+    displayCurrentShiftData();
+    showNotification('Đã cập nhật thông tin ca hiện tại');
 }
 
-// Export data
-function exportData() {
-    const dateFilter = document.getElementById('date-filter');
-    if (!dateFilter) {
-        showNotification('Không tìm thấy bộ lọc ngày');
+// End shift
+function endShift() {
+    const currentShiftOrders = getCurrentShiftOrders();
+    
+    if (currentShiftOrders.length === 0) {
+        showNotification('Không có đơn hàng nào trong ca này để kết thúc', 'warning');
         return;
     }
     
-    const selectedDate = dateFilter.value;
-    if (!selectedDate) {
-        showNotification('Vui lòng chọn ngày để xuất báo cáo');
+    // Populate shift summary modal
+    populateEndShiftModal(currentShiftOrders);
+      // Show modal
+    const modal = document.getElementById('end-shift-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        // Add show class for smooth transition
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 10);
+    }
+}
+
+// Populate end shift modal with data
+function populateEndShiftModal(orders) {
+    const startTimeEl = document.getElementById('shift-start-time');
+    const endTimeEl = document.getElementById('shift-end-time');
+    const totalOrdersEl = document.getElementById('shift-total-orders');
+    const totalRevenueEl = document.getElementById('shift-total-revenue');
+    const bestsellerEl = document.getElementById('shift-bestseller-item');
+    const ordersDetailsEl = document.getElementById('shift-orders-details');
+    
+    const currentTime = new Date();
+    const totalOrders = orders.length;
+    const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
+    
+    // Calculate best seller
+    const itemCount = {};
+    orders.forEach(order => {
+        if (order.items && Array.isArray(order.items)) {
+            order.items.forEach(item => {
+                if (item.name && item.quantity) {
+                    itemCount[item.name] = (itemCount[item.name] || 0) + item.quantity;
+                }
+            });
+        }
+    });
+    
+    let bestSeller = 'Không có';
+    let maxCount = 0;
+    for (const [itemName, count] of Object.entries(itemCount)) {
+        if (count > maxCount) {
+            maxCount = count;
+            bestSeller = `${itemName} (${count} món)`;
+        }
+    }
+    
+    // Update modal content
+    if (startTimeEl) startTimeEl.textContent = formatDateTime(shiftStartTime);
+    if (endTimeEl) endTimeEl.textContent = formatDateTime(currentTime.toISOString());
+    if (totalOrdersEl) totalOrdersEl.textContent = totalOrders;
+    if (totalRevenueEl) totalRevenueEl.textContent = formatPrice(totalRevenue);
+    if (bestsellerEl) bestsellerEl.textContent = bestSeller;
+    
+    // Populate orders details
+    if (ordersDetailsEl) {
+        const ordersHTML = orders.map(order => `
+            <div class="shift-order-item">
+                <div class="shift-order-header">
+                    <span class="order-id">#${order.id}</span>
+                    <span class="order-time">${formatDateTime(order.timestamp)}</span>
+                    <span class="order-total">${formatPrice(order.total)}</span>
+                </div>
+                <div class="shift-order-items">
+                    ${order.items ? order.items.map(item => 
+                        `<span class="item-detail">${item.quantity}x ${item.name} - ${formatPrice(item.price * item.quantity)}</span>`
+                    ).join('<br>') : ''}
+                </div>
+            </div>
+        `).join('');
+        
+        ordersDetailsEl.innerHTML = ordersHTML || '<p>Không có chi tiết đơn hàng</p>';
+    }
+}
+
+// Confirm end shift and export data
+function confirmEndShift() {
+    const currentShiftOrders = getCurrentShiftOrders();
+    
+    if (currentShiftOrders.length === 0) {
+        showNotification('Không có dữ liệu để xuất', 'warning');
         return;
     }
     
-    // Đảm bảo orderHistory đã được load
-    if (!orderHistory || orderHistory.length === 0) {
-        orderHistory = loadOrderHistory();
-    }
-    
-    const filteredOrders = orderHistory.filter(order => {
-        if (!order.timestamp) return false;
-        const orderDate = order.timestamp.split('T')[0];
-        return orderDate === selectedDate;
-    });
-    
-    const exportData = {
-        date: selectedDate,
-        summary: {
-            totalOrders: filteredOrders.length,
-            totalRevenue: filteredOrders.reduce((sum, order) => sum + (order.total || 0), 0)
+    // Create shift report data
+    const shiftReport = {
+        shiftInfo: {
+            startTime: shiftStartTime,
+            endTime: new Date().toISOString(),
+            totalOrders: currentShiftOrders.length,
+            totalRevenue: currentShiftOrders.reduce((sum, order) => sum + (order.total || 0), 0)
         },
-        orders: filteredOrders
+        orders: currentShiftOrders,
+        summary: generateShiftSummary(currentShiftOrders)
     };
     
-    const dataStr = JSON.stringify(exportData, null, 2);
+    // Export as JSON (compatible with iOS and Android)
+    const dataStr = JSON.stringify(shiftReport, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
     
-    const exportFileDefaultName = `balancoffee-report-${selectedDate}.json`;
+    const shiftDate = new Date(shiftStartTime).toISOString().split('T')[0];
+    const shiftTime = new Date(shiftStartTime).toTimeString().split(' ')[0].replace(/:/g, '-');
+    const exportFileName = `BalanCoffee-Ca-${shiftDate}-${shiftTime}.json`;
     
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.setAttribute('download', exportFileName);
     linkElement.click();
     
-    showNotification('Đã xuất báo cáo thành công');
+    // Clear current shift data after successful export
+    clearCurrentShiftData();
+    
+    // Close modal
+    closeEndShiftModal();
+    
+    showNotification(`Đã kết thúc ca và xuất báo cáo: ${exportFileName}`, 'success');
+}
+
+// Generate shift summary
+function generateShiftSummary(orders) {
+    const itemCount = {};
+    const categoryRevenue = {};
+    
+    orders.forEach(order => {
+        if (order.items && Array.isArray(order.items)) {
+            order.items.forEach(item => {
+                // Count items
+                if (item.name && item.quantity) {
+                    itemCount[item.name] = (itemCount[item.name] || 0) + item.quantity;
+                }
+                
+                // Count category revenue
+                if (item.category && item.price && item.quantity) {
+                    categoryRevenue[item.category] = (categoryRevenue[item.category] || 0) + (item.price * item.quantity);
+                }
+            });
+        }
+    });
+    
+    return {
+        itemsSold: itemCount,
+        categoryRevenue: categoryRevenue,
+        averageOrderValue: orders.length > 0 ? 
+            orders.reduce((sum, order) => sum + (order.total || 0), 0) / orders.length : 0
+    };
+}
+
+// Clear current shift data
+function clearCurrentShiftData() {
+    // Remove current shift orders from order history
+    const shiftStartDate = new Date(shiftStartTime);
+    orderHistory = orderHistory.filter(order => {
+        if (!order.timestamp) return true;
+        const orderDate = new Date(order.timestamp);
+        return orderDate < shiftStartDate;
+    });
+    
+    // Save updated order history
+    saveOrderHistory();
+    
+    // Reset shift start time
+    shiftStartTime = new Date().toISOString();
+    localStorage.setItem('shiftStartTime', shiftStartTime);
+    
+    // Clear any pending invoices from current shift
+    const newShiftStart = new Date(shiftStartTime);
+    invoices = invoices.filter(invoice => {
+        if (!invoice.createdAt) return true;
+        const invoiceDate = new Date(invoice.createdAt);
+        return invoiceDate < newShiftStart;
+    });
+    
+    saveInvoices();
+    
+    // Refresh display
+    if (isAdminMode) {
+        displayCurrentShiftData();
+    }
+    
+    // Update sidebar
+    updateInvoiceList();
+}
+
+// Close end shift modal
+function closeEndShiftModal() {
+    const modal = document.getElementById('end-shift-modal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
 }
 
 // Delete invoice

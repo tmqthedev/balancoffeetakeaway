@@ -47,36 +47,32 @@
                 <div class="menu-grid" id="menu-grid">
                     <!-- Menu items will be populated by JavaScript -->
                 </div>
-            </section>
-
-            <!-- Admin Section -->
+            </section>            <!-- Admin Section -->
             <section class="admin-section" id="admin-section" style="display: none;">
-                <h2>Tổng Kết Doanh Thu</h2>
+                <h2>Quản Lý Ca Làm Việc</h2>
                 <div class="admin-controls">
-                    <div class="date-filter">
-                        <label for="date-filter">Chọn ngày:</label>
-                        <input type="date" id="date-filter" onchange="filterByDate()">
-                        <button class="btn btn-primary" onclick="exportData()">Xuất báo cáo</button>
+                    <div class="shift-controls">
+                        <button class="btn btn-primary" onclick="viewCurrentShift()">Xem ca hiện tại</button>
+                        <button class="btn btn-danger" onclick="endShift()">Kết thúc ca</button>
                     </div>
-                </div>
-                <div class="summary-cards">
+                </div>                <div class="summary-cards">
                     <div class="summary-card">
-                        <h3>Tổng đơn hàng</h3>
-                        <p id="total-orders">0</p>
+                        <h3>Đơn hàng trong ca</h3>
+                        <p id="current-shift-orders">0</p>
                     </div>
                     <div class="summary-card">
-                        <h3>Doanh thu</h3>
-                        <p id="total-revenue">0₫</p>
+                        <h3>Doanh thu trong ca</h3>
+                        <p id="current-shift-revenue">0₫</p>
                     </div>
                     <div class="summary-card">
                         <h3>Món bán chạy</h3>
-                        <p id="best-seller">-</p>
+                        <p id="current-shift-bestseller">-</p>
                     </div>
                 </div>
-                <div class="order-history">
-                    <h3>Lịch sử đơn hàng</h3>
-                    <div id="order-history-list">
-                        <!-- Order history will be populated here -->
+                <div class="current-shift-history">
+                    <h3>Đơn hàng trong ca hiện tại</h3>
+                    <div id="current-shift-list">
+                        <!-- Current shift orders will be populated here -->
                     </div>
                 </div>
             </section>
@@ -173,9 +169,7 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Success Modal -->
+        </div>        <!-- Success Modal -->
         <div class="modal" id="success-modal">
             <div class="modal-content">
                 <div class="modal-body text-center">
@@ -185,6 +179,59 @@
                     <button class="btn btn-primary" onclick="closeSuccessModal()">
                         Đóng
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- End Shift Modal -->
+        <div class="modal" id="end-shift-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Kết thúc ca làm việc</h3>
+                    <button class="close-modal" onclick="closeEndShiftModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="shift-summary">
+                        <h4>Tổng kết ca làm việc</h4>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <span class="label">Thời gian bắt đầu ca:</span>
+                                <span class="value" id="shift-start-time">-</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Thời gian kết thúc ca:</span>
+                                <span class="value" id="shift-end-time">-</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Tổng số đơn hàng:</span>
+                                <span class="value" id="shift-total-orders">0</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Tổng doanh thu:</span>
+                                <span class="value" id="shift-total-revenue">0₫</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Món bán chạy nhất:</span>
+                                <span class="value" id="shift-bestseller-item">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="shift-details">
+                            <h5>Chi tiết các đơn hàng:</h5>
+                            <div class="shift-orders-list" id="shift-orders-details">
+                                <!-- Shift orders will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="shift-actions">
+                        <button class="btn btn-secondary" onclick="closeEndShiftModal()">Hủy</button>
+                        <button class="btn btn-success" onclick="confirmEndShift()">
+                            <i class="fas fa-download"></i> Xác nhận và xuất báo cáo
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

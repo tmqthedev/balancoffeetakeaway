@@ -807,14 +807,13 @@ body {
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal.show {
-    display: flex;
     opacity: 1;
     visibility: visible;
-    align-items: center;
-    justify-content: center;
 }
 
 .modal-content {
@@ -1435,5 +1434,282 @@ body {
     
     .no-results h3 {
         font-size: 1.25rem;
+    }
+}
+
+/* Shift management styles */
+.shift-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.current-shift-history {
+    margin-top: 2rem;
+}
+
+.current-shift-history h3 {
+    color: #8B4513;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+#current-shift-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 1rem;
+    background: white;
+}
+
+.no-orders {
+    text-align: center;
+    color: #666;
+    padding: 2rem;
+    font-style: italic;
+}
+
+/* End shift modal styles */
+#end-shift-modal .modal-content {
+    max-width: 700px;
+    width: 95%;
+}
+
+.shift-summary {
+    margin-bottom: 1.5rem;
+}
+
+.shift-summary h4 {
+    color: #8B4513;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    border-bottom: 2px solid #8B4513;
+    padding-bottom: 0.5rem;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 4px solid #8B4513;
+}
+
+.summary-item .label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.summary-item .value {
+    font-weight: 700;
+    color: #8B4513;
+}
+
+.shift-details {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #eee;
+}
+
+.shift-details h5 {
+    color: #8B4513;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.shift-orders-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #f8f9fa;
+}
+
+.shift-order-item {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-left: 4px solid #8B4513;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.shift-order-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.shift-order-item:last-child {
+    margin-bottom: 0;
+}
+
+.shift-order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.shift-order-header .order-id {
+    font-weight: 700;
+    color: #8B4513;
+}
+
+.shift-order-header .order-time {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.shift-order-header .order-total {
+    font-weight: 700;
+    color: #28a745;
+    font-size: 1.1rem;
+}
+
+.shift-order-items {
+    font-size: 0.9rem;
+    color: #555;
+    line-height: 1.4;
+}
+
+.shift-order-items .item-detail {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.shift-actions {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 2px solid #eee;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+/* Responsive design for shift modal */
+@media (max-width: 768px) {
+    #end-shift-modal .modal-content {
+        width: 98%;
+        margin: 1rem;
+    }
+    
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .shift-order-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .shift-actions {
+        flex-direction: column;
+    }
+    
+    .shift-controls {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .summary-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .shift-orders-list {
+        max-height: 200px;
+    }
+}
+
+/* Order items in admin section */
+.order-item {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-left: 4px solid #8B4513;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.order-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.order-item:last-child {
+    margin-bottom: 0;
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.order-header .order-id {
+    font-weight: 700;
+    color: #8B4513;
+    font-size: 1rem;
+}
+
+.order-header .order-time {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.order-header .order-total {
+    font-weight: 700;
+    color: #28a745;
+    font-size: 1.1rem;
+}
+
+.order-details {
+    font-size: 0.9rem;
+    color: #555;
+    line-height: 1.4;
+}
+
+.order-item-detail {
+    display: inline-block;
+    margin-right: 0.5rem;
+    margin-bottom: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    .order-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .order-item-detail {
+        display: block;
+        margin-right: 0;
     }
 }
