@@ -522,9 +522,11 @@ function addToOrder(itemId) {
         }
         
         const existingItem = currentOrder.find(orderItem => orderItem.id === itemId);
+        let actionMessage = '';
         
         if (existingItem) {
             existingItem.quantity += 1;
+            actionMessage = `Đã tăng ${item.name} thành ${existingItem.quantity} ly`;
         } else {
             currentOrder.push({
                 id: item.id,
@@ -532,6 +534,7 @@ function addToOrder(itemId) {
                 price: item.price,
                 quantity: 1
             });
+            actionMessage = `Đã thêm ${item.name} vào đơn hàng`;
         }
         
         window.currentOrder = currentOrder;
@@ -544,13 +547,24 @@ function addToOrder(itemId) {
                 invoice.total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
                 saveInvoices();
                 updateInvoiceDisplay();
+                actionMessage += ` (Hóa đơn #${currentInvoiceId})`;
             }
         }
         
         updateOrderDisplay();
         
-        showNotification(`Đã thêm ${item.name} vào đơn hàng`, 'success');
-        console.log('✅ Item added to order:', item.name);
+        // Show detailed notification
+        showNotification(actionMessage, 'success');
+        console.log('✅ Item added to order:', item.name, 'Current order size:', currentOrder.length);
+        
+        // Add visual feedback to the button
+        const button = document.querySelector(`[onclick="addToOrder(${itemId})"]`);
+        if (button) {
+            button.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                button.style.transform = 'scale(1)';
+            }, 150);
+        }
         
     } catch (error) {
         console.error('❌ Error adding item to order:', error);
@@ -990,12 +1004,12 @@ function confirmOrder() {
         }
         
         saveInvoices();
-        
-        if (invoice) {
+          if (invoice) {
             closeOrderModal();
             
             // Only add to order history for new invoices, not updates
-            if (!currentInvoiceId) {
+            const wasEditing = currentInvoiceId !== null;
+            if (!wasEditing) {
                 const orderRecord = {
                     id: invoice.id,
                     items: [...invoice.items],
@@ -1750,17 +1764,23 @@ function toggleSidebar() {
         console.log('📱 Sidebar current state:', isCurrentlyCollapsed ? 'collapsed' : 'expanded');
         
         // Toggle the collapsed class
-        sidebar.classList.toggle('collapsed');
+        if (isCurrentlyCollapsed) {
+            sidebar.classList.remove('collapsed');
+            console.log('✅ Sidebar expanded');
+        } else {
+            sidebar.classList.add('collapsed');
+            console.log('✅ Sidebar collapsed');
+        }
         
         // Update close button icon
         const closeBtn = sidebar.querySelector('.close-sidebar i');
         if (closeBtn) {
             if (sidebar.classList.contains('collapsed')) {
                 closeBtn.className = 'fas fa-chevron-left';
-                console.log('✅ Sidebar collapsed, icon updated');
+                console.log('✅ Sidebar collapsed, icon updated to chevron-left');
             } else {
                 closeBtn.className = 'fas fa-chevron-right';
-                console.log('✅ Sidebar expanded, icon updated');
+                console.log('✅ Sidebar expanded, icon updated to chevron-right');
             }
         }
         
@@ -1791,6 +1811,12 @@ function toggleSidebar() {
             window.announceToScreenReader(`Danh sách hóa đơn ${status}`);
         }
         
+        // Force update invoice display when sidebar opens
+        if (!sidebar.classList.contains('collapsed')) {
+            updateInvoiceDisplay();
+            updateInvoiceCount();
+        }
+        
     } catch (error) {
         console.error('❌ Error toggling sidebar:', error);
         showNotification('Lỗi thao tác sidebar: ' + error.message, 'error');
@@ -1810,6 +1836,16 @@ function initializeApp() {
         loadOrderHistory();
         getShiftStartTime();
         loadShiftEmployee();
+        
+        // Ensure sidebar starts collapsed
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.classList.add('collapsed');
+            const closeBtn = sidebar.querySelector('.close-sidebar i');
+            if (closeBtn) {
+                closeBtn.className = 'fas fa-chevron-left';
+            }
+        }
         
         // Update UI
         updateInvoiceDisplay();
@@ -2004,11 +2040,11 @@ function handleTouchEnd(event) {
             const modalContent = modal.querySelector('.modal-content');
             if (modalContent) {
                 const rect = modalContent.getBoundingClientRect();
-                
-                if (touchStartY < rect.top + 50) {
+                  if (touchStartY < rect.top + 50) {
                     if (modal.id === 'payment-modal') closePaymentModal();
                     else if (modal.id === 'order-modal') closeOrderModal();
-                    else if (modal.id === 'employee-modal') closeEmployeeModal();                    else if (modal.id === 'end-shift-modal') closeEndShiftModal();
+                    else if (modal.id === 'employee-modal') closeEmployeeModal();
+                    else if (modal.id === 'end-shift-modal') closeEndShiftModal();
                     else if (modal.id === 'success-modal') closeSuccessModal();
                 }
             }
@@ -2096,8 +2132,8 @@ function initializeAutoSave() {
         // Load temp order on startup
         const tempOrder = localStorage.getItem('balancoffee_temp_order');
         if (tempOrder) {
-            try {
-                const parsedOrder = JSON.parse(tempOrder);                if (validateOrderData(parsedOrder) && parsedOrder.length > 0) {
+            try {                const parsedOrder = JSON.parse(tempOrder);
+                if (validateOrderData(parsedOrder) && parsedOrder.length > 0) {
                     const restore = confirm('Phát hiện đơn hàng chưa hoàn thành. Bạn có muốn khôi phục không?');
                     if (restore) {
                         currentOrder = parsedOrder;
@@ -2140,9 +2176,9 @@ function initializeKeyboardShortcuts() {
             // Ctrl/Cmd + S: Toggle sidebar
             if ((event.ctrlKey || event.metaKey) && event.key === 's') {
                 event.preventDefault();
-                toggleSidebar();
-            }
-              // Escape: Close modals
+                toggleSidebar();            }
+            
+            // Escape: Close modals
             if (event.key === 'Escape') {
                 const modal = document.querySelector('.modal.show');
                 if (modal) {
