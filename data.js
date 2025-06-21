@@ -102,96 +102,90 @@ const menuData = [
         description: "Trà xanh với xoài tươi ngọt",
         price: 42000,
         category: "tra-trai-cay"
-    },
-
-    // Matcha
+    },    // Đồ uống khác
     {
         id: 15,
         name: "Matcha latte",
         description: "Matcha nguyên chất với sữa tươi",
         price: 55000,
-        category: "matcha"
+        category: "khac"
     },
     {
         id: 16,
         name: "Matcha đá xay",
         description: "Matcha đá xay mát lạnh",
         price: 50000,
-        category: "matcha"
+        category: "khac"
     },
     {
         id: 17,
         name: "Matcha trân châu",
         description: "Matcha latte với trân châu đen",
         price: 58000,
-        category: "matcha"
+        category: "khac"
     },
     {
         id: 18,
         name: "Matcha đậu đỏ",
         description: "Matcha với đậu đỏ ngọt ngào",
         price: 60000,
-        category: "matcha"
+        category: "khac"
     },
-
-    // Soda
     {
         id: 19,
         name: "Soda chanh",
         description: "Soda chanh sảng khoái, giải khát",
         price: 25000,
-        category: "soda"
+        category: "khac"
     },
     {
         id: 20,
         name: "Soda blue hawaii",
         description: "Soda xanh với syrup blue curacao",
         price: 35000,
-        category: "soda"
+        category: "khac"
     },
     {
         id: 21,
         name: "Soda dâu",
         description: "Soda với syrup dâu tươi",
         price: 32000,
-        category: "soda"
+        category: "khac"
     },
     {
         id: 22,
         name: "Soda cam",
         description: "Soda với cam tươi ngọt mát",
         price: 30000,
-        category: "soda"
+        category: "khac"
     },
-
-    // Cacao
     {
         id: 23,
         name: "Chocolate nóng",
         description: "Chocolate đậm đà, ngọt ngào",
         price: 40000,
-        category: "cacao"
+        category: "khac"
     },
     {
         id: 24,
         name: "Chocolate đá",
         description: "Chocolate lạnh với đá viên",
         price: 38000,
-        category: "cacao"
+        category: "khac"
     },
     {
         id: 25,
         name: "Mocha",
         description: "Cà phê kết hợp chocolate",
         price: 48000,
-        category: "cacao"
+        category: "khac"
     },
     {
         id: 26,
         name: "Hot chocolate trân châu",
         description: "Chocolate nóng với trân châu đen",
         price: 45000,
-        category: "cacao"
+        category: "khac"
     }
 ];
 

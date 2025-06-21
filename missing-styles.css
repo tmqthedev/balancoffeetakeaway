@@ -1,0 +1,81 @@
+
+/* ===== CSS CHO CÁC ELEMENTS THIẾU ===== */
+
+/* Classes thiếu */
+.sidebar-content {
+    /* Thêm styles cho .sidebar-content */
+}
+
+.sidebar-header {
+    /* Thêm styles cho .sidebar-header */
+}
+
+.close-sidebar {
+    /* Thêm styles cho .close-sidebar */
+}
+
+.sidebar-actions {
+    /* Thêm styles cho .sidebar-actions */
+}
+
+/* IDs thiếu */
+#loading-screen {
+    /* Thêm styles cho #loading-screen */
+}
+
+#app-container {
+    /* Thêm styles cho #app-container */
+}
+
+#menu-grid {
+    /* Thêm styles cho #menu-grid */
+}
+
+#sidebar {
+    /* Thêm styles cho #sidebar */
+}
+
+#invoice-list {
+    /* Thêm styles cho #invoice-list */
+}
+
+#current-order-summary {
+    /* Thêm styles cho #current-order-summary */
+}
+
+#order-items-preview {
+    /* Thêm styles cho #order-items-preview */
+}
+
+#order-total-preview {
+    /* Thêm styles cho #order-total-preview */
+}
+
+#order-modal {
+    /* Thêm styles cho #order-modal */
+}
+
+#order-total {
+    /* Thêm styles cho #order-total */
+}
+
+#payment-modal {
+    /* Thêm styles cho #payment-modal */
+}
+
+#payment-actions {
+    /* Thêm styles cho #payment-actions */
+}
+
+#success-modal {
+    /* Thêm styles cho #success-modal */
+}
+
+#end-shift-modal {
+    /* Thêm styles cho #end-shift-modal */
+}
+
+#employee-modal {
+    /* Thêm styles cho #employee-modal */
+}
+

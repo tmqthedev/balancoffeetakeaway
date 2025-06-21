@@ -1,7 +1,9 @@
 // BalanCoffee - Main Application Script
-// Version: 6.0 - Fixed All Issues
+// Version: 8.0 - Optimized & Enhanced
 
-// Global variables
+// =============================================================================
+// GLOBAL VARIABLES
+// =============================================================================
 let currentOrder = [];
 let invoices = [];
 let currentInvoiceId = null;
@@ -9,6 +11,8 @@ let currentCategory = 'all';
 let isAdminMode = false;
 let orderHistory = [];
 let shiftStartTime = null;
+let currentShiftEmployee = null;
+let currentShiftNote = null;
 
 // Expose globals to window for diagnostic detection
 window.currentOrder = currentOrder;
@@ -18,38 +22,20 @@ window.shiftStartTime = shiftStartTime;
 window.currentInvoiceId = currentInvoiceId;
 window.isAdminMode = isAdminMode;
 window.currentCategory = currentCategory;
-// Note: qrPaymentInfo and menuData are declared in data.js
+window.currentShiftEmployee = currentShiftEmployee;
+window.currentShiftNote = currentShiftNote;
 
 // Fallback menu data
 const fallbackMenuData = [
-    {
-        id: 1,
-        name: "Cà phê đen",
-        description: "Cà phê đen truyền thống",
-        price: 25000,
-        category: "cafe-viet"
-    },
-    {
-        id: 2,
-        name: "Cà phê sữa",
-        description: "Cà phê với sữa đặc",
-        price: 30000,
-        category: "cafe-viet"
-    },
-    {
-        id: 3,
-        name: "Americano",
-        description: "Espresso pha loãng",
-        price: 40000,
-        category: "cafe-y"
-    }
+    { id: 1, name: "Cà phê đen", description: "Cà phê đen truyền thống", price: 25000, category: "cafe-viet" },
+    { id: 2, name: "Cà phê sữa", description: "Cà phê với sữa đặc", price: 30000, category: "cafe-viet" },
+    { id: 3, name: "Americano", description: "Espresso pha loãng", price: 40000, category: "cafe-y" }
 ];
 
 // =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
 
-// Format price to Vietnamese currency
 function formatPrice(price) {
     if (typeof price !== 'number') {
         price = Number(price) || 0;
@@ -57,7 +43,6 @@ function formatPrice(price) {
     return price.toLocaleString('vi-VN') + '₫';
 }
 
-// Format date time to Vietnamese format
 function formatDateTime(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -67,33 +52,28 @@ function formatDateTime(dateString) {
     });
 }
 
-// Show notification
 function showNotification(message, type = 'info') {
     try {
         console.log(`[${type.toUpperCase()}] ${message}`);
-        
-        // Create notification element
-        const notification = document.createElement('div');
+          const notification = document.createElement('div');
         notification.className = `notification ${type}`;
+        
+        // Get appropriate icon based on notification type
+        let iconClass = 'fa-info-circle';
+        if (type === 'success') iconClass = 'fa-check-circle';
+        else if (type === 'error') iconClass = 'fa-exclamation-circle';
+        else if (type === 'warning') iconClass = 'fa-exclamation-triangle';
+        
         notification.innerHTML = `
             <div class="notification-content">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : 
-                                type === 'error' ? 'fa-exclamation-circle' : 
-                                type === 'warning' ? 'fa-exclamation-triangle' : 
-                                'fa-info-circle'}"></i>
+                <i class="fas ${iconClass}"></i>
                 <span>${message}</span>
             </div>
         `;
         
-        // Add to body
         document.body.appendChild(notification);
         
-        // Show notification
-        setTimeout(() => {
-            notification.classList.add('show');
-        }, 100);
-        
-        // Auto remove after 5 seconds
+        setTimeout(() => notification.classList.add('show'), 100);
         setTimeout(() => {
             notification.classList.remove('show');
             setTimeout(() => {
@@ -108,74 +88,6 @@ function showNotification(message, type = 'info') {
     }
 }
 
-// Utility function to wait for element to be available
-function waitForElement(elementId, callback, maxRetries = 20, delay = 250) {
-    const element = document.getElementById(elementId);
-    
-    if (element) {
-        console.log(`✅ Element found: ${elementId}`, element);
-        try {
-            callback(element);
-        } catch (error) {
-            console.error(`❌ Error in callback for ${elementId}:`, error);
-        }
-    } else if (maxRetries > 0) {
-        console.log(`⏳ Waiting for element: ${elementId} (${maxRetries} retries left)`);
-        setTimeout(() => {
-            waitForElement(elementId, callback, maxRetries - 1, delay);
-        }, delay);
-    } else {
-        console.error(`❌ Element not found after retries: ${elementId}`);
-        console.log('🔍 Document ready state:', document.readyState);
-        console.log('🔍 Available elements with IDs:', 
-            Array.from(document.querySelectorAll('[id]')).map(el => `${el.id} (${el.tagName})`));
-        console.log('🔍 Body innerHTML length:', document.body ? document.body.innerHTML.length : 'No body');
-        console.log('🔍 App container:', document.querySelector('.app-container') ? 'Found' : 'Missing');
-        
-        // Try alternative selectors
-        const byClass = document.querySelector(`.${elementId}`);
-        const byAttribute = document.querySelector(`[data-id="${elementId}"]`);
-        if (byClass) console.log(`🔍 Found element by class: .${elementId}`, byClass);
-        if (byAttribute) console.log(`🔍 Found element by data-id: [data-id="${elementId}"]`, byAttribute);
-        
-        // Try to proceed anyway if we have critical functions ready
-        if (typeof callback === 'function') {
-            console.log(`⚠️ Attempting to call callback without element for ${elementId}`);
-            try {
-                callback(null);
-            } catch (error) {
-                console.error(`❌ Callback failed for missing element ${elementId}:`, error);
-            }
-        }
-    }
-}
-
-// Enhanced element finder with multiple strategies
-function findElement(elementId) {
-    // Strategy 1: getElementById
-    let element = document.getElementById(elementId);
-    if (element) return element;
-    
-    // Strategy 2: querySelector with ID
-    element = document.querySelector(`#${elementId}`);
-    if (element) return element;
-    
-    // Strategy 3: querySelector with escaped ID (in case of special characters)
-    element = document.querySelector(`[id="${elementId}"]`);
-    if (element) return element;
-    
-    // Strategy 4: Check if element exists but has different casing
-    const allElements = Array.from(document.querySelectorAll('[id]'));
-    const similarElement = allElements.find(el => el.id.toLowerCase() === elementId.toLowerCase());
-    if (similarElement) {
-        console.warn(`⚠️ Found element with different casing: ${similarElement.id} instead of ${elementId}`);
-        return similarElement;
-    }
-    
-    return null;
-}
-
-// Utility function to ensure DOM is ready
 function ensureDOMReady(callback) {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', callback);
@@ -192,27 +104,23 @@ function loadInvoices() {
     try {
         const saved = localStorage.getItem('balancoffee_invoices');
         if (saved) {
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed)) {
-                console.log('✅ Loaded invoices from localStorage:', parsed.length);
-                return parsed;
-            }
+            invoices = JSON.parse(saved);
+            window.invoices = invoices;
+            console.log('✅ Loaded invoices:', invoices.length);
         }
-        console.log('📝 No saved invoices found, starting fresh');
-        return [];
     } catch (error) {
         console.error('❌ Error loading invoices:', error);
-        return [];
+        invoices = [];
+        window.invoices = invoices;
     }
 }
 
 function saveInvoices() {
     try {
         localStorage.setItem('balancoffee_invoices', JSON.stringify(invoices));
-        console.log('✅ Invoices saved to localStorage');
+        console.log('✅ Invoices saved');
     } catch (error) {
         console.error('❌ Error saving invoices:', error);
-        showNotification('Lỗi lưu dữ liệu hóa đơn', 'error');
     }
 }
 
@@ -220,46 +128,108 @@ function loadOrderHistory() {
     try {
         const saved = localStorage.getItem('balancoffee_order_history');
         if (saved) {
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed)) {
-                console.log('✅ Loaded order history from localStorage:', parsed.length);
-                return parsed;
-            }
+            orderHistory = JSON.parse(saved);
+            window.orderHistory = orderHistory;
+            console.log('✅ Loaded order history:', orderHistory.length);
         }
-        console.log('📝 No saved order history found, starting fresh');
-        return [];
+        return orderHistory;
     } catch (error) {
         console.error('❌ Error loading order history:', error);
-        return [];
+        orderHistory = [];
+        window.orderHistory = orderHistory;
+        return orderHistory;
     }
 }
 
 function saveOrderHistory() {
     try {
         localStorage.setItem('balancoffee_order_history', JSON.stringify(orderHistory));
-        console.log('✅ Order history saved to localStorage');
+        console.log('✅ Order history saved');
     } catch (error) {
         console.error('❌ Error saving order history:', error);
-        showNotification('Lỗi lưu lịch sử đơn hàng', 'error');
     }
 }
 
 function getShiftStartTime() {
     try {
-        let startTime = localStorage.getItem('shiftStartTime');
-        if (!startTime) {
-            startTime = new Date().toISOString();
-            localStorage.setItem('shiftStartTime', startTime);
-            console.log('🆕 Created new shift start time:', startTime);
+        console.log('🔄 Getting shift start time...');
+        const saved = localStorage.getItem('shiftStartTime');
+        
+        if (saved) {
+            shiftStartTime = saved;
+            console.log('✅ Loaded existing shift start time:', formatDateTime(saved));
         } else {
-            console.log('📅 Loaded shift start time:', startTime);
+            // Only auto-create if explicitly requested
+            console.log('⚠️ No existing shift found in localStorage');
+            shiftStartTime = null;
         }
-        return startTime;
+        
+        window.shiftStartTime = shiftStartTime;
+        console.log('📊 Final shift start time:', shiftStartTime);
+        return shiftStartTime;
     } catch (error) {
         console.error('❌ Error getting shift start time:', error);
-        const fallback = new Date().toISOString();
-        console.log('🔄 Using fallback shift start time:', fallback);
-        return fallback;
+        shiftStartTime = null;
+        window.shiftStartTime = shiftStartTime;
+        return shiftStartTime;
+    }
+}
+
+function loadShiftEmployee() {
+    try {
+        console.log('🔄 Loading shift employee data...');
+        const saved = localStorage.getItem('currentShiftEmployee');
+        
+        if (saved) {
+            try {
+                const employeeData = JSON.parse(saved);
+                currentShiftEmployee = employeeData.name || null;
+                currentShiftNote = employeeData.note || null;
+                console.log('✅ Loaded shift employee:', currentShiftEmployee);
+                console.log('📝 Shift note:', currentShiftNote);
+            } catch (parseError) {
+                console.error('❌ Error parsing employee data:', parseError);
+                // Try loading as simple string (backward compatibility)
+                currentShiftEmployee = saved;
+                currentShiftNote = null;
+                console.log('🔄 Loaded as simple string:', currentShiftEmployee);
+            }
+        } else {
+            currentShiftEmployee = null;
+            currentShiftNote = null;
+            console.log('⚠️ No shift employee data found');
+        }
+        
+        window.currentShiftEmployee = currentShiftEmployee;
+        window.currentShiftNote = currentShiftNote;
+        
+        console.log('📊 Final employee data:', { 
+            employee: currentShiftEmployee, 
+            note: currentShiftNote 
+        });
+        
+        return { employee: currentShiftEmployee, note: currentShiftNote };
+    } catch (error) {
+        console.error('❌ Error loading shift employee:', error);
+        currentShiftEmployee = null;
+        currentShiftNote = null;
+        window.currentShiftEmployee = currentShiftEmployee;
+        window.currentShiftNote = currentShiftNote;
+        return { employee: null, note: null };
+    }
+}
+
+function saveShiftEmployee(employee, note) {
+    try {
+        const employeeData = { name: employee, note: note };
+        localStorage.setItem('currentShiftEmployee', JSON.stringify(employeeData));
+        currentShiftEmployee = employee;
+        currentShiftNote = note;
+        window.currentShiftEmployee = currentShiftEmployee;
+        window.currentShiftNote = currentShiftNote;
+        console.log('✅ Shift employee saved:', employee);
+    } catch (error) {
+        console.error('❌ Error saving shift employee:', error);
     }
 }
 
@@ -269,25 +239,12 @@ function getShiftStartTime() {
 
 function generateQRCode(amount) {
     try {
-        // Try to use the static QR image first
         const qrImage = document.getElementById('qr-image');
         const qrFallback = document.getElementById('qr-fallback');
         
         if (qrImage) {
-            qrImage.onerror = function() {
-                console.log('📱 Static QR image failed, using canvas fallback');
-                if (qrFallback) {
-                    qrFallback.style.display = 'block';
-                }
-                this.style.display = 'none';
-                generateQRFallback(amount);
-            };
-            
-            qrImage.src = 'qr_code.png?' + Date.now();
             qrImage.style.display = 'block';
-            if (qrFallback) {
-                qrFallback.style.display = 'none';
-            }
+            if (qrFallback) qrFallback.style.display = 'none';
         } else {
             generateQRFallback(amount);
         }
@@ -302,25 +259,19 @@ function generateQRCode(amount) {
 function generateQRFallback(amount) {
     try {
         const canvas = document.getElementById('qr-code');
-        if (!canvas) {
-            console.error('❌ QR canvas element not found');
-            return;
-        }
+        if (!canvas) return;
         
         const ctx = canvas.getContext('2d');
         canvas.width = 200;
         canvas.height = 200;
         
-        // Background
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, 200, 200);
         
-        // Border
         ctx.strokeStyle = '#8B4513';
         ctx.lineWidth = 2;
         ctx.strokeRect(0, 0, 200, 200);
         
-        // Text
         ctx.fillStyle = '#8B4513';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
@@ -333,9 +284,9 @@ function generateQRFallback(amount) {
         ctx.fillText(formatPrice(amount), 100, 100);
         
         ctx.font = '11px Arial';
-        ctx.fillText('Ngân hàng: ' + qrPaymentInfo.bankName, 100, 130);
-        ctx.fillText('STK: ' + qrPaymentInfo.accountNumber, 100, 150);
-        ctx.fillText('Chủ TK: ' + qrPaymentInfo.accountHolder, 100, 170);
+        ctx.fillText('Ngân hàng: ' + (window.qrPaymentInfo?.bankName || 'VCB'), 100, 130);
+        ctx.fillText('STK: ' + (window.qrPaymentInfo?.accountNumber || '1234567890'), 100, 150);
+        ctx.fillText('Chủ TK: ' + (window.qrPaymentInfo?.accountHolder || 'BalanCoffee'), 100, 170);
         
         ctx.font = '10px Arial';
         ctx.fillText('Sử dụng app ngân hàng để thanh toán', 100, 190);
@@ -347,193 +298,7 @@ function generateQRFallback(amount) {
 }
 
 // =============================================================================
-// SHIFT MANAGEMENT FUNCTIONS
-// =============================================================================
-
-function startNewShift() {
-    const confirmStart = confirm('Bạn có chắc chắn muốn bắt đầu ca mới? Dữ liệu ca hiện tại sẽ được lưu trữ.');
-    
-    if (confirmStart) {
-        try {
-            // Save current shift data before starting new one
-            const currentShiftOrders = getCurrentShiftOrders();
-            if (currentShiftOrders.length > 0) {
-                // Archive current shift data
-                const archiveData = {
-                    shiftInfo: {
-                        startTime: shiftStartTime,
-                        endTime: new Date().toISOString(),
-                        totalOrders: currentShiftOrders.length,
-                        totalRevenue: currentShiftOrders.reduce((sum, order) => sum + (order.total || 0), 0)
-                    },
-                    orders: currentShiftOrders
-                };
-                
-                // Save to archived shifts
-                let archivedShifts = JSON.parse(localStorage.getItem('balancoffee_archived_shifts') || '[]');
-                archivedShifts.push(archiveData);
-                localStorage.setItem('balancoffee_archived_shifts', JSON.stringify(archivedShifts));
-                
-                showNotification('Đã lưu trữ dữ liệu ca cũ', 'success');
-            }
-            
-            // Reset shift start time
-            shiftStartTime = new Date().toISOString();
-            localStorage.setItem('shiftStartTime', shiftStartTime);
-            
-            // Clear current shift data from order history
-            const shiftStartDate = new Date(shiftStartTime);
-            orderHistory = orderHistory.filter(order => {
-                if (!order.timestamp) return true;
-                const orderDate = new Date(order.timestamp);
-                return orderDate < shiftStartDate;
-            });
-            
-            saveOrderHistory();
-            
-            // Clear pending invoices if any
-            const currentTime = new Date(shiftStartTime);
-            invoices = invoices.filter(invoice => {
-                if (!invoice.createdAt) return true;
-                const invoiceDate = new Date(invoice.createdAt);
-                return invoiceDate < currentTime;
-            });
-            
-            saveInvoices();
-            
-            // Refresh display
-            if (isAdminMode) {
-                displayCurrentShiftData();
-            }
-            updateInvoiceDisplay();
-            updateInvoiceCount();
-            
-            showNotification('Đã bắt đầu ca mới thành công!', 'success');
-            console.log('✅ New shift started at:', new Date(shiftStartTime).toLocaleString());
-            
-        } catch (error) {
-            console.error('❌ Error starting new shift:', error);
-            showNotification('Lỗi bắt đầu ca mới: ' + error.message, 'error');
-        }
-    }
-}
-
-function viewCurrentShift() {
-    displayCurrentShiftData();
-    showNotification('Đã cập nhật thông tin ca hiện tại');
-}
-
-function endShift() {
-    const currentShiftOrders = getCurrentShiftOrders();
-    
-    if (currentShiftOrders.length === 0) {
-        showNotification('Không có đơn hàng nào trong ca này để kết thúc', 'warning');
-        return;
-    }
-    
-    // Populate shift summary modal
-    populateEndShiftModal(currentShiftOrders);
-      // Show modal with proper timing
-    const modal = document.getElementById('end-shift-modal');
-    if (modal) {
-        modal.style.display = 'flex';
-        
-        // Force reflow to ensure display change is applied
-        modal.getBoundingClientRect();
-        
-        setTimeout(() => {
-            modal.classList.add('show');
-            console.log('✅ End shift modal show class added');
-        }, 50);
-    }
-}
-
-function getCurrentShiftOrders() {
-    if (!orderHistory || orderHistory.length === 0) {
-        orderHistory = loadOrderHistory();
-    }
-    
-    const currentShiftStart = new Date(shiftStartTime);
-    
-    return orderHistory.filter(order => {
-        if (!order.timestamp) return false;
-        const orderDate = new Date(order.timestamp);
-        return orderDate >= currentShiftStart;
-    });
-}
-
-function displayCurrentShiftData() {
-    const currentShiftOrders = getCurrentShiftOrders();
-    updateCurrentShiftSummary(currentShiftOrders);
-    displayCurrentShiftOrders(currentShiftOrders);
-}
-
-function updateCurrentShiftSummary(orders) {
-    if (!orders) orders = [];
-    
-    const totalOrders = orders.length;
-    const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
-    
-    // Calculate best seller
-    const itemCount = {};
-    orders.forEach(order => {
-        if (order.items && Array.isArray(order.items)) {
-            order.items.forEach(item => {
-                if (item.name && item.quantity) {
-                    itemCount[item.name] = (itemCount[item.name] || 0) + item.quantity;
-                }
-            });
-        }
-    });
-    
-    let bestSeller = '-';
-    let maxCount = 0;
-    for (const [itemName, count] of Object.entries(itemCount)) {
-        if (count > maxCount) {
-            maxCount = count;
-            bestSeller = `${itemName} (${count})`;
-        }
-    }
-    
-    // Update UI
-    const totalOrdersEl = document.getElementById('current-shift-orders');
-    const totalRevenueEl = document.getElementById('current-shift-revenue');
-    const bestSellerEl = document.getElementById('current-shift-bestseller');
-    
-    if (totalOrdersEl) totalOrdersEl.textContent = totalOrders;
-    if (totalRevenueEl) totalRevenueEl.textContent = formatPrice(totalRevenue);
-    if (bestSellerEl) bestSellerEl.textContent = bestSeller;
-}
-
-function displayCurrentShiftOrders(orders) {
-    const container = document.getElementById('current-shift-list');
-    if (!container) return;
-    
-    if (!orders || orders.length === 0) {
-        container.innerHTML = '<p class="no-orders">Chưa có đơn hàng nào trong ca này.</p>';
-        return;
-    }
-    
-    const ordersHTML = orders.map(order => `
-        <div class="order-item">
-            <div class="order-header">
-                <span class="order-id">#${order.id}</span>
-                <span class="order-time">${formatDateTime(order.timestamp)}</span>
-                <span class="order-total">${formatPrice(order.total)}</span>
-            </div>
-            <div class="order-details">
-                ${order.items ? order.items.map(item => 
-                    `<span class="order-item-detail">${item.quantity}x ${item.name}</span>`
-                ).join(', ') : ''}
-            </div>
-        </div>
-    `).join('');
-    
-    container.innerHTML = ordersHTML;
-}
-
-// =============================================================================
-// UI FUNCTIONS
+// UI UPDATE FUNCTIONS
 // =============================================================================
 
 function updateInvoiceDisplay() {
@@ -541,11 +306,7 @@ function updateInvoiceDisplay() {
         const invoiceList = document.getElementById('invoice-list');
         
         if (!invoiceList) {
-            console.error('❌ Invoice list element not found, retrying in 500ms...');
-            // Retry after a short delay
-            setTimeout(() => {
-                updateInvoiceDisplay();
-            }, 500);
+            console.error('❌ Invoice list element not found');
             return;
         }
         
@@ -559,7 +320,6 @@ function updateInvoiceDisplay() {
             return;
         }
         
-        // Filter only pending invoices
         const pendingInvoices = invoices.filter(invoice => invoice.status === 'pending');
         
         if (pendingInvoices.length === 0) {
@@ -572,18 +332,17 @@ function updateInvoiceDisplay() {
             return;
         }
         
-        // Sort pending invoices by creation date
         const sortedInvoices = [...pendingInvoices].sort((a, b) =>
             new Date(b.createdAt) - new Date(a.createdAt)
         );
-        
-        invoiceList.innerHTML = sortedInvoices.map(invoice => `
-            <div class="invoice-item ${currentInvoiceId === invoice.id ? 'active' : ''}" 
+          invoiceList.innerHTML = sortedInvoices.map(invoice => `
+            <div class="invoice-item ${currentInvoiceId === invoice.id ? 'active' : ''} ${currentInvoiceId === invoice.id ? 'editing' : ''}" 
                  data-invoice-id="${invoice.id}">
                 <div class="invoice-header" onclick="selectInvoice('${invoice.id}')">
                     <span class="invoice-id">Hóa đơn #${invoice.id}</span>
                     <span class="invoice-status ${invoice.status}">
-                        ${invoice.status === 'pending' ? 'Chờ thanh toán' : 'Đã thanh toán'}
+                        ${currentInvoiceId === invoice.id ? '⚠ Đang chỉnh sửa' : 
+                          (invoice.status === 'pending' ? 'Chờ thanh toán' : 'Đã thanh toán')}
                     </span>
                 </div>
                 <div class="invoice-details">
@@ -592,14 +351,32 @@ function updateInvoiceDisplay() {
                 </div>
                 <div class="invoice-total">
                     Tổng: ${formatPrice(invoice.total || 0)}
-                </div>
-                <div class="invoice-actions">
-                    <button class="btn-pay" onclick="event.stopPropagation(); processPayment('${invoice.id}')" title="Thanh toán">
-                        <i class="fas fa-credit-card"></i>
-                    </button>
-                    <button class="btn-delete" onclick="event.stopPropagation(); deleteInvoiceById('${invoice.id}')" title="Xóa hóa đơn">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                </div>                <div class="invoice-actions">
+                    ${currentInvoiceId === invoice.id ? `
+                        <button class="btn btn-secondary btn-invoice-action" onclick="event.stopPropagation(); deselectInvoice()" title="Hủy chỉnh sửa">
+                            <i class="fas fa-times"></i>
+                            <span>Hủy</span>
+                        </button>
+                        <button class="btn btn-success btn-invoice-action" onclick="event.stopPropagation(); finishEditInvoice('${invoice.id}')" title="Hoàn tất chỉnh sửa">
+                            <i class="fas fa-check"></i>
+                            <span>Xong</span>
+                        </button>
+                    ` : `
+                        <button class="btn btn-primary btn-invoice-action" onclick="event.stopPropagation(); editInvoice('${invoice.id}')" title="Chỉnh sửa hóa đơn">
+                            <i class="fas fa-edit"></i>
+                            <span>Sửa</span>
+                        </button>
+                    `}
+                    ${currentInvoiceId !== invoice.id ? `
+                        <button class="btn btn-success btn-invoice-action" onclick="event.stopPropagation(); processPayment('${invoice.id}')" title="Thanh toán">
+                            <i class="fas fa-credit-card"></i>
+                            <span>Thanh toán</span>
+                        </button>
+                        <button class="btn btn-danger btn-invoice-action" onclick="event.stopPropagation(); deleteInvoiceById('${invoice.id}')" title="Xóa hóa đơn">
+                            <i class="fas fa-trash"></i>
+                            <span>Xóa</span>
+                        </button>
+                    ` : ''}
                 </div>
             </div>
         `).join('');
@@ -612,228 +389,13 @@ function updateInvoiceDisplay() {
     }
 }
 
-function updateInvoiceCount() {
-    try {
-        const pendingInvoices = invoices.filter(inv => inv.status === 'pending');
-        const countElements = document.querySelectorAll('.invoice-count');
-        
-        countElements.forEach(el => {
-            el.textContent = pendingInvoices.length;
-        });
-        
-        console.log('✅ Invoice count updated:', pendingInvoices.length);
-    } catch (error) {
-        console.error('❌ Error updating invoice count:', error);
-    }
-}
-
-function batchUpdate(updates = {}) {
-    try {
-        if (updates.invoiceDisplay) {
-            updateInvoiceDisplay();
-        }
-        if (updates.menu) {
-            renderMenu();
-        }
-        if (updates.invoiceCount) {
-            updateInvoiceCount();
-        }
-        if (updates.adminData && isAdminMode) {
-            displayCurrentShiftData();
-        }
-    } catch (error) {
-        console.error('❌ Error in batch update:', error);
-        showNotification('Lỗi cập nhật giao diện: ' + error.message, 'error');
-    }
-}
-
-function toggleAdmin() {    try {
-        isAdminMode = !isAdminMode;
-        window.isAdminMode = isAdminMode; // Sync window variable
-        const adminSection = document.getElementById('admin-section');
-        const menuSection = document.querySelector('.menu-section');
-        const adminBtn = document.querySelector('[onclick="toggleAdmin()"]');
-        
-        if (isAdminMode) {
-            if (adminSection) adminSection.style.display = 'block';
-            if (menuSection) menuSection.style.display = 'none';
-            if (adminBtn) adminBtn.textContent = 'Quay lại Menu';
-            displayCurrentShiftData();
-        } else {
-            if (adminSection) adminSection.style.display = 'none';
-            if (menuSection) menuSection.style.display = 'block';
-            if (adminBtn) adminBtn.textContent = 'Tổng kết';
-        }
-        
-        console.log('✅ Admin mode toggled:', isAdminMode ? 'ON' : 'OFF');
-    } catch (error) {
-        console.error('❌ Error toggling admin mode:', error);
-        showNotification('Lỗi chuyển đổi chế độ admin: ' + error.message, 'error');
-    }
-}
-
-// =============================================================================
-// PLACEHOLDER FUNCTIONS (BASIC IMPLEMENTATIONS)
-// =============================================================================
-
-function renderMenu() {
-    try {
-        console.log('🎨 Rendering menu...');
-        
-        const menuContainer = document.getElementById('menu-grid');
-        if (!menuContainer) {
-            console.error('❌ Menu container not found (menu-grid), retrying in 500ms...');
-            // Retry after a short delay
-            setTimeout(() => {
-                renderMenu();
-            }, 500);
-            return;
-        }
-        
-        // Use menuData from data.js or fallback
-        const menuItems = window.menuData || fallbackMenuData;
-        
-        // Clear existing menu
-        menuContainer.innerHTML = '';
-        
-        // Group items by category if needed
-        const filteredItems = currentCategory === 'all' ? 
-            menuItems : 
-            menuItems.filter(item => item.category === currentCategory);
-        
-        if (filteredItems.length === 0) {
-            menuContainer.innerHTML = '<p class="no-items">Không có món nào trong danh mục này.</p>';
-            return;
-        }
-        
-        // Render menu items
-        filteredItems.forEach(item => {
-            const menuItem = document.createElement('div');
-            menuItem.className = 'menu-item';
-            menuItem.innerHTML = `
-                <div class="menu-item-image">
-                    <i class="fas fa-coffee"></i>
-                </div>
-                <div class="menu-item-info">
-                    <h3>${item.name}</h3>
-                    <p>${item.description || 'Món ngon từ BalanCoffee'}</p>
-                    <span class="price">${formatPrice(item.price)}</span>
-                </div>
-                <button class="btn-add" onclick="addToOrder(${item.id})" title="Thêm vào đơn hàng">
-                    <i class="fas fa-plus"></i>
-                </button>
-            `;
-            menuContainer.appendChild(menuItem);
-        });
-        
-        console.log('✅ Menu rendered:', filteredItems.length, 'items');
-        
-    } catch (error) {
-        console.error('❌ Error rendering menu:', error);
-        showNotification('Lỗi hiển thị menu: ' + error.message, 'error');
-    }
-}
-
-function createNewInvoice() {
-    try {
-        console.log('📄 Creating new invoice...');
-        
-        if (!currentOrder || currentOrder.length === 0) {
-            showNotification('Đơn hàng trống, không thể tạo hóa đơn', 'warning');
-            return;
-        }
-        
-        // Calculate total
-        const total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        
-        // Generate invoice ID
-        const invoiceId = 'HD' + Date.now().toString().slice(-6);
-        
-        // Create invoice object
-        const newInvoice = {
-            id: invoiceId,
-            items: [...currentOrder],
-            total: total,
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-            paymentMethod: null
-        };
-        
-        // Add to invoices array
-        invoices.push(newInvoice);
-        saveInvoices();
-        
-        // Clear current order
-        currentOrder = [];
-        window.currentOrder = currentOrder;
-        
-        // Update UI
-        updateInvoiceDisplay();
-        updateInvoiceCount();
-        updateOrderDisplay();
-        
-        showNotification(`Đã tạo hóa đơn #${invoiceId}`, 'success');
-        console.log('✅ Invoice created:', newInvoice);
-        
-        return newInvoice;
-        
-    } catch (error) {
-        console.error('❌ Error creating invoice:', error);
-        showNotification('Lỗi tạo hóa đơn: ' + error.message, 'error');
-    }
-}
-
-// Add item to current order
-function addToOrder(itemId) {
-    try {
-        console.log('🛒 Adding item to order:', itemId);
-        
-        const menuItems = window.menuData || fallbackMenuData;
-        const item = menuItems.find(i => i.id === itemId);
-        
-        if (!item) {
-            console.error('❌ Item not found:', itemId);
-            showNotification('Không tìm thấy món này', 'error');
-            return;
-        }
-        
-        // Check if item already in order
-        const existingItem = currentOrder.find(orderItem => orderItem.id === itemId);
-        
-        if (existingItem) {
-            existingItem.quantity += 1;
-        } else {
-            currentOrder.push({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                quantity: 1
-            });
-        }
-        
-        // Sync window variable
-        window.currentOrder = currentOrder;
-        
-        // Update order display
-        updateOrderDisplay();
-        
-        showNotification(`Đã thêm ${item.name} vào đơn hàng`, 'success');
-        console.log('✅ Item added to order:', item.name);
-        
-    } catch (error) {
-        console.error('❌ Error adding item to order:', error);
-        showNotification('Lỗi thêm món: ' + error.message, 'error');
-    }
-}
-
-// Update order display in sidebar
 function updateOrderDisplay() {
     try {
         const orderList = document.getElementById('order-items');
         const orderTotal = document.getElementById('order-total');
         
         if (!orderList) {
-            console.log('📝 Order list element not found (order-items), will retry when needed');
+            console.log('📝 Order list element not found (order-items)');
             return;
         }
         
@@ -843,10 +405,8 @@ function updateOrderDisplay() {
             return;
         }
         
-        // Calculate total
         const total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
-        // Render order items
         orderList.innerHTML = currentOrder.map(item => `
             <div class="order-item">
                 <div class="order-item-info">
@@ -864,7 +424,6 @@ function updateOrderDisplay() {
             </div>
         `).join('');
         
-        // Update total
         if (orderTotal) {
             orderTotal.textContent = formatPrice(total);
         }
@@ -876,12 +435,146 @@ function updateOrderDisplay() {
     }
 }
 
-// Quantity control functions
+function updateInvoiceCount() {
+    try {
+        const pendingInvoices = invoices.filter(inv => inv.status === 'pending');
+        const countElements = document.querySelectorAll('#invoice-count, .invoice-count');
+        
+        countElements.forEach(el => {
+            el.textContent = pendingInvoices.length;
+        });
+        
+        console.log('✅ Invoice count updated:', pendingInvoices.length);
+    } catch (error) {
+        console.error('❌ Error updating invoice count:', error);
+    }
+}
+
+function renderMenu() {
+    try {
+        console.log('🎨 Rendering menu...');
+        
+        const menuContainer = document.getElementById('menu-grid');
+        if (!menuContainer) {
+            console.error('❌ Menu container not found (menu-grid)');
+            return;
+        }
+        
+        const menuItems = window.menuData || fallbackMenuData;
+        menuContainer.innerHTML = '';
+        
+        const filteredItems = currentCategory === 'all' ? 
+            menuItems : 
+            menuItems.filter(item => item.category === currentCategory);
+        
+        if (filteredItems.length === 0) {
+            menuContainer.innerHTML = '<p class="no-items">Không có món nào trong danh mục này.</p>';
+            return;
+        }
+          filteredItems.forEach(item => {
+            const menuItem = document.createElement('div');
+            menuItem.className = 'menu-item-card';
+            menuItem.setAttribute('data-category', item.category);
+            menuItem.innerHTML = `
+                <div class="menu-item-image">
+                    <i class="fas fa-coffee"></i>
+                </div>
+                <div class="menu-item-content">
+                    <div class="menu-item-info">
+                        <h3 class="item-name">${item.name}</h3>
+                        <p class="item-description">${item.description || 'Món ngon từ BalanCoffee'}</p>
+                    </div>
+                    <div class="menu-item-actions">
+                        <span class="item-price">${formatPrice(item.price)}</span>
+                        <button class="btn-add-item" onclick="addToOrder(${item.id})" title="Thêm ${item.name} vào đơn hàng" aria-label="Thêm ${item.name} vào đơn hàng">
+                            <i class="fas fa-plus"></i>
+                            <span>Thêm</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            menuContainer.appendChild(menuItem);
+        });
+        
+        console.log('✅ Menu rendered:', filteredItems.length, 'items');
+        
+    } catch (error) {
+        console.error('❌ Error rendering menu:', error);
+        showNotification('Lỗi hiển thị menu: ' + error.message, 'error');
+    }
+}
+
+// =============================================================================
+// ORDER MANAGEMENT FUNCTIONS
+// =============================================================================
+
+function addToOrder(itemId) {
+    try {
+        console.log('🛒 Adding item to order:', itemId);
+        
+        const menuItems = window.menuData || fallbackMenuData;
+        const item = menuItems.find(i => i.id === itemId);
+        
+        if (!item) {
+            console.error('❌ Item not found:', itemId);
+            showNotification('Không tìm thấy món này', 'error');
+            return;
+        }
+        
+        const existingItem = currentOrder.find(orderItem => orderItem.id === itemId);
+        
+        if (existingItem) {
+            existingItem.quantity += 1;
+        } else {
+            currentOrder.push({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: 1
+            });
+        }
+        
+        window.currentOrder = currentOrder;
+        
+        // If there's a current invoice being edited, update it
+        if (currentInvoiceId) {
+            const invoice = invoices.find(inv => inv.id === currentInvoiceId);
+            if (invoice) {
+                invoice.items = [...currentOrder];
+                invoice.total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                saveInvoices();
+                updateInvoiceDisplay();
+            }
+        }
+        
+        updateOrderDisplay();
+        
+        showNotification(`Đã thêm ${item.name} vào đơn hàng`, 'success');
+        console.log('✅ Item added to order:', item.name);
+        
+    } catch (error) {
+        console.error('❌ Error adding item to order:', error);
+        showNotification('Lỗi thêm món: ' + error.message, 'error');
+    }
+}
+
 function increaseQuantity(itemId) {
     const item = currentOrder.find(i => i.id === itemId);
     if (item) {
         item.quantity += 1;
         window.currentOrder = currentOrder;
+        
+        // Update current invoice if editing
+        if (currentInvoiceId) {
+            const invoice = invoices.find(inv => inv.id === currentInvoiceId);
+            if (invoice) {
+                invoice.items = [...currentOrder];
+                invoice.total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                saveInvoices();
+                updateInvoiceDisplay();
+            }
+        }
+        
         updateOrderDisplay();
     }
 }
@@ -891,6 +584,18 @@ function decreaseQuantity(itemId) {
     if (item && item.quantity > 1) {
         item.quantity -= 1;
         window.currentOrder = currentOrder;
+        
+        // Update current invoice if editing
+        if (currentInvoiceId) {
+            const invoice = invoices.find(inv => inv.id === currentInvoiceId);
+            if (invoice) {
+                invoice.items = [...currentOrder];
+                invoice.total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                saveInvoices();
+                updateInvoiceDisplay();
+            }
+        }
+        
         updateOrderDisplay();
     }
 }
@@ -898,6 +603,18 @@ function decreaseQuantity(itemId) {
 function removeFromOrder(itemId) {
     currentOrder = currentOrder.filter(item => item.id !== itemId);
     window.currentOrder = currentOrder;
+    
+    // Update current invoice if editing
+    if (currentInvoiceId) {
+        const invoice = invoices.find(inv => inv.id === currentInvoiceId);
+        if (invoice) {
+            invoice.items = [...currentOrder];
+            invoice.total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            saveInvoices();
+            updateInvoiceDisplay();
+        }
+    }
+    
     updateOrderDisplay();
     
     const item = (window.menuData || fallbackMenuData).find(i => i.id === itemId);
@@ -905,6 +622,182 @@ function removeFromOrder(itemId) {
         showNotification(`Đã xóa ${item.name} khỏi đơn hàng`);
     }
 }
+
+function clearCurrentOrder() {
+    currentOrder = [];
+    window.currentOrder = currentOrder;
+    
+    // Update current invoice if editing
+    if (currentInvoiceId) {
+        const invoice = invoices.find(inv => inv.id === currentInvoiceId);
+        if (invoice) {
+            invoice.items = [];
+            invoice.total = 0;
+            saveInvoices();
+            updateInvoiceDisplay();
+        }
+    }
+    
+    updateOrderDisplay();
+    showNotification('Đã xóa tất cả món khỏi đơn hàng');
+}
+
+// =============================================================================
+// INVOICE MANAGEMENT FUNCTIONS
+// =============================================================================
+
+function createNewInvoice() {
+    try {
+        console.log('📄 Creating new empty invoice...');
+        
+        // Create empty invoice
+        const invoiceId = 'HD' + Date.now().toString().slice(-6);
+        
+        const newInvoice = {
+            id: invoiceId,
+            items: [],
+            total: 0,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            paymentMethod: null,
+            isEditing: true
+        };
+        
+        invoices.push(newInvoice);
+        saveInvoices();
+        
+        // Automatically select the new invoice for editing
+        currentInvoiceId = invoiceId;
+        window.currentInvoiceId = currentInvoiceId;
+        
+        // Clear current order to start fresh
+        currentOrder = [];
+        window.currentOrder = currentOrder;
+        
+        updateInvoiceDisplay();
+        updateInvoiceCount();
+        updateOrderDisplay();
+        showSidebarControls();
+        
+        showNotification(`Đã tạo hóa đơn rỗng #${invoiceId} - Bắt đầu thêm món`, 'success');
+        console.log('✅ Empty invoice created and selected for editing:', newInvoice);
+        
+        return newInvoice;
+        
+    } catch (error) {
+        console.error('❌ Error creating invoice:', error);
+        showNotification('Lỗi tạo hóa đơn: ' + error.message, 'error');
+    }
+}
+
+function selectInvoice(invoiceId) {
+    try {
+        console.log('📋 Select invoice called:', invoiceId);
+        
+        const invoice = invoices.find(inv => inv.id === invoiceId);
+        if (!invoice) {
+            console.error('❌ Invoice not found:', invoiceId);
+            showNotification('Không tìm thấy hóa đơn', 'error');
+            return;
+        }
+        
+        currentInvoiceId = invoiceId;
+        window.currentInvoiceId = currentInvoiceId;
+        
+        currentOrder = [...(invoice.items || [])];
+        window.currentOrder = currentOrder;
+        
+        console.log('✅ Invoice loaded for editing:', invoice);
+        
+        updateInvoiceDisplay();
+        updateOrderDisplay();
+        showSidebarControls();
+        
+        showNotification(`Đã chọn hóa đơn #${invoiceId} để chỉnh sửa`, 'success');
+        
+    } catch (error) {
+        console.error('❌ Error selecting invoice:', error);
+        showNotification('Lỗi chọn hóa đơn: ' + error.message, 'error');
+    }
+}
+
+function editInvoice(invoiceId) {
+    selectInvoice(invoiceId);
+    showNotification(`Đang chỉnh sửa hóa đơn #${invoiceId}`, 'info');
+}
+
+function deselectInvoice() {
+    try {
+        console.log('📋 Deselecting invoice...');
+        
+        currentInvoiceId = null;
+        window.currentInvoiceId = currentInvoiceId;
+        
+        currentOrder = [];
+        window.currentOrder = currentOrder;
+        
+        updateInvoiceDisplay();
+        updateOrderDisplay();
+        hideSidebarControls();
+        
+        showNotification('Đã bỏ chọn hóa đơn', 'info');
+        
+    } catch (error) {
+        console.error('❌ Error deselecting invoice:', error);
+        showNotification('Lỗi bỏ chọn hóa đơn: ' + error.message, 'error');
+    }
+}
+
+function deleteInvoiceById(invoiceId) {
+    console.log('🗑️ Delete invoice called:', invoiceId);
+    const confirmDelete = confirm(`Bạn có chắc chắn muốn xóa hóa đơn #${invoiceId}?`);
+    
+    if (confirmDelete) {
+        invoices = invoices.filter(inv => inv.id !== invoiceId);
+        if (currentInvoiceId === invoiceId) {
+            currentInvoiceId = null;
+            window.currentInvoiceId = currentInvoiceId;
+        }
+        saveInvoices();
+        updateInvoiceDisplay();
+        updateInvoiceCount();
+        showNotification(`Đã xóa hóa đơn #${invoiceId}`);
+    }
+}
+
+function processPayment(invoiceId) {
+    console.log('💳 Process payment called for:', invoiceId);
+    const invoice = invoices.find(inv => inv.id === invoiceId);
+    if (invoice) {
+        openPaymentModal(invoice);
+    }
+}
+
+function showSidebarControls() {
+    try {
+        const controls = document.getElementById('sidebar-controls');
+        if (controls) {
+            controls.style.display = 'flex';
+        }
+    } catch (error) {
+        console.error('❌ Error showing sidebar controls:', error);
+    }
+}
+
+function hideSidebarControls() {
+    try {
+        const controls = document.getElementById('sidebar-controls');
+        if (controls) {
+            controls.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('❌ Error hiding sidebar controls:', error);
+    }
+}
+
+// =============================================================================
+// MODAL FUNCTIONS
+// =============================================================================
 
 function openOrderModal() {
     try {
@@ -920,15 +813,11 @@ function openOrderModal() {
             console.error('❌ Order modal not found');
             return;
         }
-          // Update modal content
-        updateOrderModalContent();
-          // Show modal with proper timing
-        modal.style.display = 'flex';
         
-        // Force reflow to ensure display change is applied
+        updateOrderModalContent();
+        modal.style.display = 'flex';
         modal.getBoundingClientRect();
         
-        // Add show class with slight delay for transition
         setTimeout(() => {
             modal.classList.add('show');
             console.log('✅ Order modal show class added');
@@ -977,10 +866,8 @@ function updateOrderModalContent() {
             return;
         }
         
-        // Calculate total
         const total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
-        // Render items
         modalItems.innerHTML = currentOrder.map(item => `
             <div class="modal-order-item">
                 <span class="item-name">${item.name}</span>
@@ -1007,14 +894,38 @@ function confirmOrder() {
             return;
         }
         
-        // Create invoice
-        const invoice = createNewInvoice();
+        let invoice;
+        
+        // If editing an existing invoice, update it
+        if (currentInvoiceId) {
+            invoice = invoices.find(inv => inv.id === currentInvoiceId);
+            if (invoice) {
+                invoice.items = [...currentOrder];
+                invoice.total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                delete invoice.isEditing;
+                saveInvoices();
+            }
+        } else {
+            // Create new invoice with current order
+            const total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const invoiceId = 'HD' + Date.now().toString().slice(-6);
+            
+            invoice = {
+                id: invoiceId,
+                items: [...currentOrder],
+                total: total,
+                status: 'pending',
+                createdAt: new Date().toISOString(),
+                paymentMethod: null
+            };
+            
+            invoices.push(invoice);
+            saveInvoices();
+        }
         
         if (invoice) {
-            // Close order modal
             closeOrderModal();
             
-            // Add to order history
             const orderRecord = {
                 id: invoice.id,
                 items: [...invoice.items],
@@ -1027,11 +938,19 @@ function confirmOrder() {
             saveOrderHistory();
             window.orderHistory = orderHistory;
             
+            // Clear editing state
+            currentInvoiceId = null;
+            window.currentInvoiceId = currentInvoiceId;
+            currentOrder = [];
+            window.currentOrder = currentOrder;
+            
+            updateInvoiceDisplay();
+            updateInvoiceCount();
+            updateOrderDisplay();
+            hideSidebarControls();
+            
             showNotification(`Đã xác nhận đơn hàng #${invoice.id}`, 'success');
             console.log('✅ Order confirmed and added to history');
-            
-            // Select the new invoice for payment
-            selectInvoice(invoice.id);
         }
         
     } catch (error) {
@@ -1054,10 +973,9 @@ function openPaymentModal(invoice) {
             console.error('❌ Payment modal not found');
             return;
         }
-          // Update modal content
+        
         updatePaymentModalContent(invoice);
         
-        // Add payment action buttons
         const paymentActions = document.getElementById('payment-actions');
         if (paymentActions) {
             paymentActions.innerHTML = `
@@ -1067,14 +985,12 @@ function openPaymentModal(invoice) {
                 </button>
             `;
         }
-          // Generate QR code for payment
-        generateQRCode(invoice.total);        // Show modal with proper timing
-        modal.style.display = 'flex';
         
-        // Force reflow to ensure display change is applied
+        generateQRCode(invoice.total);
+        
+        modal.style.display = 'flex';
         modal.getBoundingClientRect();
         
-        // Add show class with slight delay for transition
         setTimeout(() => {
             modal.classList.add('show');
             console.log('✅ Payment modal show class added');
@@ -1131,29 +1047,36 @@ function confirmPayment() {
             return;
         }
         
-        // Mark invoice as paid
+        if (invoice.items.length === 0) {
+            showNotification('Hóa đơn trống không thể thanh toán', 'error');
+            return;
+        }
+        
+        // Update invoice status
         invoice.status = 'paid';
         invoice.paidAt = new Date().toISOString();
         invoice.paymentMethod = 'qr';
         
-        // Save changes
+        // Save and update UI
         saveInvoices();
         window.invoices = invoices;
         
-        // Update UI
         updateInvoiceDisplay();
         updateInvoiceCount();
-          // Close payment modal
-        closePaymentModal();
         
-        // Show success modal
+        // Show success before clearing current invoice
         showSuccessModal(invoice);
+        
+        // Close payment modal
+        closePaymentModal();
         
         console.log('✅ Payment confirmed for invoice:', invoice.id);
         
-        // Clear current selection
-        currentInvoiceId = null;
-        window.currentInvoiceId = currentInvoiceId;
+        // Clear current invoice after showing success
+        setTimeout(() => {
+            currentInvoiceId = null;
+            window.currentInvoiceId = currentInvoiceId;
+        }, 100);
         
     } catch (error) {
         console.error('❌ Error confirming payment:', error);
@@ -1180,107 +1103,265 @@ function closePaymentModal() {
     }
 }
 
-function selectInvoice(invoiceId) {
+function showSuccessModal(invoice) {
     try {
-        console.log('📋 Select invoice called:', invoiceId);
+        const modal = document.getElementById('success-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.getBoundingClientRect();
+            
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 50);
+            
+            setTimeout(() => {
+                closeSuccessModal();
+            }, 3000);
+        }
+    } catch (error) {
+        console.error('❌ Error showing success modal:', error);
+    }
+}
+
+function closeSuccessModal() {
+    try {
+        const modal = document.getElementById('success-modal');
+        if (modal) {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+    } catch (error) {
+        console.error('❌ Error closing success modal:', error);
+    }
+}
+
+// =============================================================================
+// CATEGORY & FILTER FUNCTIONS
+// =============================================================================
+
+function filterMenu(category) {
+    currentCategory = category;
+    window.currentCategory = currentCategory;
+    
+    // Update active category button
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.category === category) {
+            btn.classList.add('active');
+        }
+    });
+    
+    renderMenu();
+    console.log('✅ Menu filtered by category:', category);
+}
+
+// =============================================================================
+// ADMIN & SHIFT FUNCTIONS
+// =============================================================================
+
+function updateAdminUI(isAdmin) {
+    const adminSection = document.getElementById('admin-section');
+    const menuSection = document.querySelector('.menu-section');
+    const adminBtn = document.querySelector('[onclick="toggleAdmin()"]');
+    
+    if (isAdmin) {
+        if (adminSection) adminSection.style.display = 'block';
+        if (menuSection) menuSection.style.display = 'none';
+        if (adminBtn) adminBtn.innerHTML = '<i class="fas fa-chart-bar"></i> Quay lại Menu';
+        displayCurrentShiftData();
+        updateShiftInfoDisplay();
+    } else {
+        if (adminSection) adminSection.style.display = 'none';
+        if (menuSection) menuSection.style.display = 'block';
+        if (adminBtn) adminBtn.innerHTML = '<i class="fas fa-chart-bar"></i> Quản lý';
+    }
+}
+
+function updateShiftInfoDisplay() {
+    try {
+        console.log('🔄 Updating shift info display...');
+        console.log('📊 Current shift data:', {
+            shiftStartTime,
+            currentShiftEmployee,
+            currentShiftNote
+        });
         
-        const invoice = invoices.find(inv => inv.id === invoiceId);
-        if (!invoice) {
-            console.error('❌ Invoice not found:', invoiceId);
-            showNotification('Không tìm thấy hóa đơn', 'error');
+        const shiftStartDisplay = document.getElementById('shift-start-display');
+        const shiftEmployeeDisplay = document.getElementById('shift-employee-display');
+        
+        if (shiftStartDisplay) {
+            if (shiftStartTime) {
+                const formattedTime = formatDateTime(shiftStartTime);
+                shiftStartDisplay.textContent = formattedTime;
+                console.log('✅ Shift start time updated:', formattedTime);
+            } else {
+                shiftStartDisplay.textContent = 'Chưa bắt đầu ca';
+                console.log('⚠️ No shift start time found');
+            }
+        } else {
+            console.error('❌ shift-start-display element not found');
+        }
+        
+        if (shiftEmployeeDisplay) {
+            if (currentShiftEmployee) {
+                shiftEmployeeDisplay.textContent = currentShiftEmployee;
+                console.log('✅ Shift employee updated:', currentShiftEmployee);
+            } else {
+                shiftEmployeeDisplay.textContent = 'Chưa chọn nhân viên';
+                console.log('⚠️ No shift employee found');
+            }
+        } else {
+            console.error('❌ shift-employee-display element not found');
+        }
+        
+        // Update shift status indicator
+        updateShiftStatusIndicator();
+        
+        console.log('✅ Shift info display updated successfully');
+    } catch (error) {
+        console.error('❌ Error updating shift info display:', error);
+        showNotification('Lỗi cập nhật thông tin ca làm việc: ' + error.message, 'error');
+    }
+}
+
+function updateShiftStatusIndicator() {
+    try {
+        const statusElements = document.querySelectorAll('.shift-status');
+        const hasShift = shiftStartTime && currentShiftEmployee;
+        
+        statusElements.forEach(element => {
+            if (hasShift) {
+                element.classList.add('active');
+                element.classList.remove('inactive');
+                element.textContent = 'Đang trong ca';
+            } else {
+                element.classList.add('inactive');
+                element.classList.remove('active');
+                element.textContent = 'Chưa bắt đầu ca';
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error updating shift status indicator:', error);
+    }
+}
+
+function openEmployeeModal() {
+    try {
+        const modal = document.getElementById('employee-modal');
+        const modalShiftTime = document.getElementById('modal-shift-time');
+        const employeeNameInput = document.getElementById('employee-name');
+        const shiftNoteInput = document.getElementById('shift-note');
+        
+        if (!modal) {
+            console.error('❌ Employee modal not found');
             return;
         }
         
-        currentInvoiceId = invoiceId;
-        window.currentInvoiceId = currentInvoiceId; // Sync window variable
-        
-        // Load invoice items into current order for editing
-        currentOrder = [...(invoice.items || [])];
-        window.currentOrder = currentOrder; // Sync window variable
-        
-        console.log('✅ Invoice loaded for editing:', invoice);
-        
-        updateInvoiceDisplay();
-        updateOrderDisplay();
-        showSidebarControls();
-        
-        showNotification(`Đã chọn hóa đơn #${invoiceId} để chỉnh sửa`, 'success');
-        
-    } catch (error) {
-        console.error('❌ Error selecting invoice:', error);
-        showNotification('Lỗi chọn hóa đơn: ' + error.message, 'error');
-    }
-}
-
-function deselectInvoice() {
-    try {
-        console.log('📋 Deselecting invoice...');
-        
-        currentInvoiceId = null;
-        window.currentInvoiceId = currentInvoiceId; // Sync window variable
-        
-        // Clear current order
-        currentOrder = [];
-        window.currentOrder = currentOrder; // Sync window variable
-        
-        updateInvoiceDisplay();
-        updateOrderDisplay();
-        hideSidebarControls();
-        
-        showNotification('Đã bỏ chọn hóa đơn', 'info');
-        
-    } catch (error) {
-        console.error('❌ Error deselecting invoice:', error);
-        showNotification('Lỗi bỏ chọn hóa đơn: ' + error.message, 'error');
-    }
-}
-
-function showSidebarControls() {
-    try {
-        const controls = document.getElementById('sidebar-controls');
-        if (controls) {
-            controls.style.display = 'flex';
+        // Set current time
+        const currentTime = new Date();
+        if (modalShiftTime) {
+            modalShiftTime.textContent = formatDateTime(currentTime.toISOString());
         }
+        
+        // Clear inputs
+        if (employeeNameInput) employeeNameInput.value = '';
+        if (shiftNoteInput) shiftNoteInput.value = '';
+        
+        // Show modal
+        modal.style.display = 'flex';
+        modal.getBoundingClientRect();
+        
+        setTimeout(() => {
+            modal.classList.add('show');
+            if (employeeNameInput) employeeNameInput.focus();
+        }, 50);
+        
+        console.log('✅ Employee modal opened');
+        
     } catch (error) {
-        console.error('❌ Error showing sidebar controls:', error);
+        console.error('❌ Error opening employee modal:', error);
+        showNotification('Lỗi mở modal nhân viên: ' + error.message, 'error');
     }
 }
 
-function hideSidebarControls() {
+function closeEmployeeModal() {
     try {
-        const controls = document.getElementById('sidebar-controls');
-        if (controls) {
-            controls.style.display = 'none';
+        const modal = document.getElementById('employee-modal');
+        if (modal) {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
         }
+        console.log('✅ Employee modal closed');
     } catch (error) {
-        console.error('❌ Error hiding sidebar controls:', error);
+        console.error('❌ Error closing employee modal:', error);
     }
 }
 
-// =============================================================================
-// SHIFT MANAGEMENT FUNCTIONS
-// =============================================================================
+function confirmEmployeeInfo() {
+    try {
+        const employeeNameInput = document.getElementById('employee-name');
+        const shiftNoteInput = document.getElementById('shift-note');
+        
+        const employeeName = employeeNameInput ? employeeNameInput.value.trim() : '';
+        const shiftNote = shiftNoteInput ? shiftNoteInput.value.trim() : '';
+        
+        if (!employeeName) {
+            showNotification('Vui lòng nhập tên nhân viên', 'warning');
+            if (employeeNameInput) employeeNameInput.focus();
+            return;
+        }
+        
+        // Start new shift with employee info
+        proceedWithNewShift(employeeName, shiftNote);
+        closeEmployeeModal();
+        
+    } catch (error) {
+        console.error('❌ Error confirming employee info:', error);
+        showNotification('Lỗi xác nhận thông tin nhân viên: ' + error.message, 'error');
+    }
+}
+
+function toggleAdmin() {
+    try {
+        isAdminMode = !isAdminMode;
+        window.isAdminMode = isAdminMode;
+        updateAdminUI(isAdminMode);
+        console.log('✅ Admin mode toggled:', isAdminMode ? 'ON' : 'OFF');
+    } catch (error) {
+        console.error('❌ Error toggling admin mode:', error);
+        showNotification('Lỗi chuyển đổi chế độ admin: ' + error.message, 'error');
+    }
+}
 
 function startNewShift() {
-    const confirmStart = confirm('Bạn có chắc chắn muốn bắt đầu ca mới? Dữ liệu ca hiện tại sẽ được lưu trữ.');
+    // Open employee modal instead of direct confirmation
+    openEmployeeModal();
+}
+
+function proceedWithNewShift(employeeName, shiftNote) {
+    const confirmStart = confirm(`Bạn có chắc chắn muốn bắt đầu ca mới với nhân viên "${employeeName}"?\nDữ liệu ca hiện tại sẽ được lưu trữ.`);
     
     if (confirmStart) {
         try {
-            // Save current shift data before starting new one
             const currentShiftOrders = getCurrentShiftOrders();
             if (currentShiftOrders.length > 0) {
-                // Archive current shift data
                 const archiveData = {
                     shiftInfo: {
                         startTime: shiftStartTime,
                         endTime: new Date().toISOString(),
                         totalOrders: currentShiftOrders.length,
-                        totalRevenue: currentShiftOrders.reduce((sum, order) => sum + (order.total || 0), 0)
+                        totalRevenue: currentShiftOrders.reduce((sum, order) => sum + (order.total || 0), 0),
+                        employee: currentShiftEmployee,
+                        note: currentShiftNote
                     },
                     orders: currentShiftOrders
                 };
                 
-                // Save to archived shifts
                 let archivedShifts = JSON.parse(localStorage.getItem('balancoffee_archived_shifts') || '[]');
                 archivedShifts.push(archiveData);
                 localStorage.setItem('balancoffee_archived_shifts', JSON.stringify(archivedShifts));
@@ -1288,11 +1369,11 @@ function startNewShift() {
                 showNotification('Đã lưu trữ dữ liệu ca cũ', 'success');
             }
             
-            // Reset shift start time
+            // Set new shift info
             shiftStartTime = new Date().toISOString();
             localStorage.setItem('shiftStartTime', shiftStartTime);
+            saveShiftEmployee(employeeName, shiftNote);
             
-            // Clear current shift data from order history
             const shiftStartDate = new Date(shiftStartTime);
             orderHistory = orderHistory.filter(order => {
                 if (!order.timestamp) return true;
@@ -1302,7 +1383,6 @@ function startNewShift() {
             
             saveOrderHistory();
             
-            // Clear pending invoices if any
             const currentTime = new Date(shiftStartTime);
             invoices = invoices.filter(invoice => {
                 if (!invoice.createdAt) return true;
@@ -1312,15 +1392,25 @@ function startNewShift() {
             
             saveInvoices();
             
-            // Refresh display
+            // Update UI
             if (isAdminMode) {
                 displayCurrentShiftData();
             }
             updateInvoiceDisplay();
             updateInvoiceCount();
+            updateShiftInfoDisplay();
             
-            showNotification('Đã bắt đầu ca mới thành công!', 'success');
-            console.log('✅ New shift started at:', new Date(shiftStartTime).toLocaleString());
+            // Add animation effect
+            const shiftInfo = document.querySelector('.current-shift-info');
+            if (shiftInfo) {
+                shiftInfo.classList.add('new-shift');
+                setTimeout(() => {
+                    shiftInfo.classList.remove('new-shift');
+                }, 3000);
+            }
+            
+            showNotification(`Đã bắt đầu ca mới với nhân viên ${employeeName}!`, 'success');
+            console.log('✅ New shift started at:', new Date(shiftStartTime).toLocaleString(), 'Employee:', employeeName);
             
         } catch (error) {
             console.error('❌ Error starting new shift:', error);
@@ -1331,6 +1421,7 @@ function startNewShift() {
 
 function viewCurrentShift() {
     displayCurrentShiftData();
+    updateShiftInfoDisplay();
     showNotification('Đã cập nhật thông tin ca hiện tại');
 }
 
@@ -1342,14 +1433,11 @@ function endShift() {
         return;
     }
     
-    // Populate shift summary modal
     populateEndShiftModal(currentShiftOrders);
-      // Show modal with proper timing
+    
     const modal = document.getElementById('end-shift-modal');
     if (modal) {
         modal.style.display = 'flex';
-        
-        // Force reflow to ensure display change is applied
         modal.getBoundingClientRect();
         
         setTimeout(() => {
@@ -1385,7 +1473,6 @@ function updateCurrentShiftSummary(orders) {
     const totalOrders = orders.length;
     const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
     
-    // Calculate best seller
     const itemCount = {};
     orders.forEach(order => {
         if (order.items && Array.isArray(order.items)) {
@@ -1406,7 +1493,6 @@ function updateCurrentShiftSummary(orders) {
         }
     }
     
-    // Update UI
     const totalOrdersEl = document.getElementById('current-shift-orders');
     const totalRevenueEl = document.getElementById('current-shift-revenue');
     const bestSellerEl = document.getElementById('current-shift-bestseller');
@@ -1443,854 +1529,703 @@ function displayCurrentShiftOrders(orders) {
     container.innerHTML = ordersHTML;
 }
 
-// =============================================================================
-// UI FUNCTIONS
-// =============================================================================
-
-function updateInvoiceDisplay() {
+function populateEndShiftModal(orders) {
     try {
-        const invoiceList = document.getElementById('invoice-list');
+        const startTimeEl = document.getElementById('shift-start-time');
+        const endTimeEl = document.getElementById('shift-end-time');
+        const totalOrdersEl = document.getElementById('shift-total-orders');
+        const totalRevenueEl = document.getElementById('shift-total-revenue');
+        const bestSellerEl = document.getElementById('shift-bestseller-item');
+        const ordersDetailsEl = document.getElementById('shift-orders-details');
         
-        if (!invoiceList) {
-            console.error('❌ Invoice list element not found, retrying in 500ms...');
-            // Retry after a short delay
-            setTimeout(() => {
-                updateInvoiceDisplay();
-            }, 500);
-            return;
-        }
+        const endTime = new Date().toISOString();
+        const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
         
-        if (invoices.length === 0) {
-            invoiceList.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-receipt"></i>
-                    <p>Chưa có hóa đơn nào</p>
-                </div>
-            `;
-            return;
-        }
+        if (startTimeEl) startTimeEl.textContent = formatDateTime(shiftStartTime);
+        if (endTimeEl) endTimeEl.textContent = formatDateTime(endTime);
+        if (totalOrdersEl) totalOrdersEl.textContent = orders.length;
+        if (totalRevenueEl) totalRevenueEl.textContent = formatPrice(totalRevenue);
         
-        // Filter only pending invoices
-        const pendingInvoices = invoices.filter(invoice => invoice.status === 'pending');
-        
-        if (pendingInvoices.length === 0) {
-            invoiceList.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                    <p>Tất cả hóa đơn đã được thanh toán</p>
-                </div>
-            `;
-            return;
-        }
-        
-        // Sort pending invoices by creation date
-        const sortedInvoices = [...pendingInvoices].sort((a, b) =>
-            new Date(b.createdAt) - new Date(a.createdAt)
-        );
-        
-        invoiceList.innerHTML = sortedInvoices.map(invoice => `
-            <div class="invoice-item ${currentInvoiceId === invoice.id ? 'active' : ''}" 
-                 data-invoice-id="${invoice.id}">
-                <div class="invoice-header" onclick="selectInvoice('${invoice.id}')">
-                    <span class="invoice-id">Hóa đơn #${invoice.id}</span>
-                    <span class="invoice-status ${invoice.status}">
-                        ${invoice.status === 'pending' ? 'Chờ thanh toán' : 'Đã thanh toán'}
-                    </span>
-                </div>
-                <div class="invoice-details">
-                    <p>Số món: ${invoice.items ? invoice.items.reduce((sum, item) => sum + item.quantity, 0) : 0}</p>
-                    <p>Thời gian: ${formatDateTime(invoice.createdAt)}</p>
-                </div>
-                <div class="invoice-total">
-                    Tổng: ${formatPrice(invoice.total || 0)}
-                </div>
-                <div class="invoice-actions">
-                    <button class="btn-pay" onclick="event.stopPropagation(); processPayment('${invoice.id}')" title="Thanh toán">
-                        <i class="fas fa-credit-card"></i>
-                    </button>
-                    <button class="btn-delete" onclick="event.stopPropagation(); deleteInvoiceById('${invoice.id}')" title="Xóa hóa đơn">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
-        
-        console.log('✅ Invoice display updated:', invoices.length, 'invoices');
-        
-    } catch (error) {
-        console.error('❌ Error updating invoice display:', error);
-        showNotification('Lỗi cập nhật danh sách hóa đơn: ' + error.message, 'error');
-    }
-}
-
-function updateInvoiceCount() {
-    try {
-        const pendingInvoices = invoices.filter(inv => inv.status === 'pending');
-        const countElements = document.querySelectorAll('.invoice-count');
-        
-        countElements.forEach(el => {
-            el.textContent = pendingInvoices.length;
+        // Calculate best seller
+        const itemCount = {};
+        orders.forEach(order => {
+            if (order.items && Array.isArray(order.items)) {
+                order.items.forEach(item => {
+                    if (item.name && item.quantity) {
+                        itemCount[item.name] = (itemCount[item.name] || 0) + item.quantity;
+                    }
+                });
+            }
         });
         
-        console.log('✅ Invoice count updated:', pendingInvoices.length);
-    } catch (error) {
-        console.error('❌ Error updating invoice count:', error);
-    }
-}
-
-function batchUpdate(updates = {}) {
-    try {
-        if (updates.invoiceDisplay) {
-            updateInvoiceDisplay();
-        }
-        if (updates.menu) {
-            renderMenu();
-        }
-        if (updates.invoiceCount) {
-            updateInvoiceCount();
-        }
-        if (updates.adminData && isAdminMode) {
-            displayCurrentShiftData();
-        }
-    } catch (error) {
-        console.error('❌ Error in batch update:', error);
-        showNotification('Lỗi cập nhật giao diện: ' + error.message, 'error');
-    }
-}
-
-function toggleAdmin() {    try {
-        isAdminMode = !isAdminMode;
-        window.isAdminMode = isAdminMode; // Sync window variable
-        const adminSection = document.getElementById('admin-section');
-        const menuSection = document.querySelector('.menu-section');
-        const adminBtn = document.querySelector('[onclick="toggleAdmin()"]');
-        
-        if (isAdminMode) {
-            if (adminSection) adminSection.style.display = 'block';
-            if (menuSection) menuSection.style.display = 'none';
-            if (adminBtn) adminBtn.textContent = 'Quay lại Menu';
-            displayCurrentShiftData();
-        } else {
-            if (adminSection) adminSection.style.display = 'none';
-            if (menuSection) menuSection.style.display = 'block';
-            if (adminBtn) adminBtn.textContent = 'Tổng kết';
+        let bestSeller = '-';
+        let maxCount = 0;
+        for (const [itemName, count] of Object.entries(itemCount)) {
+            if (count > maxCount) {
+                maxCount = count;
+                bestSeller = `${itemName} (${count} ly)`;
+            }
         }
         
-        console.log('✅ Admin mode toggled:', isAdminMode ? 'ON' : 'OFF');
-    } catch (error) {
-        console.error('❌ Error toggling admin mode:', error);
-        showNotification('Lỗi chuyển đổi chế độ admin: ' + error.message, 'error');
-    }
-}
-
-// =============================================================================
-// PLACEHOLDER FUNCTIONS (BASIC IMPLEMENTATIONS)
-// =============================================================================
-
-function renderMenu() {
-    try {
-        console.log('🎨 Rendering menu...');
+        if (bestSellerEl) bestSellerEl.textContent = bestSeller;
         
-        const menuContainer = document.getElementById('menu-grid');
-        if (!menuContainer) {
-            console.error('❌ Menu container not found (menu-grid), retrying in 500ms...');
-            // Retry after a short delay
-            setTimeout(() => {
-                renderMenu();
-            }, 500);
-            return;
-        }
-        
-        // Use menuData from data.js or fallback
-        const menuItems = window.menuData || fallbackMenuData;
-        
-        // Clear existing menu
-        menuContainer.innerHTML = '';
-        
-        // Group items by category if needed
-        const filteredItems = currentCategory === 'all' ? 
-            menuItems : 
-            menuItems.filter(item => item.category === currentCategory);
-        
-        if (filteredItems.length === 0) {
-            menuContainer.innerHTML = '<p class="no-items">Không có món nào trong danh mục này.</p>';
-            return;
-        }
-        
-        // Render menu items
-        filteredItems.forEach(item => {
-            const menuItem = document.createElement('div');
-            menuItem.className = 'menu-item';
-            menuItem.innerHTML = `
-                <div class="menu-item-image">
-                    <i class="fas fa-coffee"></i>
-                </div>
-                <div class="menu-item-info">
-                    <h3>${item.name}</h3>
-                    <p>${item.description || 'Món ngon từ BalanCoffee'}</p>
-                    <span class="price">${formatPrice(item.price)}</span>
-                </div>
-                <button class="btn-add" onclick="addToOrder(${item.id})" title="Thêm vào đơn hàng">
-                    <i class="fas fa-plus"></i>
-                </button>
-            `;
-            menuContainer.appendChild(menuItem);
-        });
-        
-        console.log('✅ Menu rendered:', filteredItems.length, 'items');
-        
-    } catch (error) {
-        console.error('❌ Error rendering menu:', error);
-        showNotification('Lỗi hiển thị menu: ' + error.message, 'error');
-    }
-}
-
-function createNewInvoice() {
-    try {
-        console.log('📄 Creating new invoice...');
-        
-        if (!currentOrder || currentOrder.length === 0) {
-            showNotification('Đơn hàng trống, không thể tạo hóa đơn', 'warning');
-            return;
-        }
-        
-        // Calculate total
-        const total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        
-        // Generate invoice ID
-        const invoiceId = 'HD' + Date.now().toString().slice(-6);
-        
-        // Create invoice object
-        const newInvoice = {
-            id: invoiceId,
-            items: [...currentOrder],
-            total: total,
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-            paymentMethod: null
-        };
-        
-        // Add to invoices array
-        invoices.push(newInvoice);
-        saveInvoices();
-        
-        // Clear current order
-        currentOrder = [];
-        window.currentOrder = currentOrder;
-        
-        // Update UI
-        updateInvoiceDisplay();
-        updateInvoiceCount();
-        updateOrderDisplay();
-        
-        showNotification(`Đã tạo hóa đơn #${invoiceId}`, 'success');
-        console.log('✅ Invoice created:', newInvoice);
-        
-        return newInvoice;
-        
-    } catch (error) {
-        console.error('❌ Error creating invoice:', error);
-        showNotification('Lỗi tạo hóa đơn: ' + error.message, 'error');
-    }
-}
-
-// Add item to current order
-function addToOrder(itemId) {
-    try {
-        console.log('🛒 Adding item to order:', itemId);
-        
-        const menuItems = window.menuData || fallbackMenuData;
-        const item = menuItems.find(i => i.id === itemId);
-        
-        if (!item) {
-            console.error('❌ Item not found:', itemId);
-            showNotification('Không tìm thấy món này', 'error');
-            return;
-        }
-        
-        // Check if item already in order
-        const existingItem = currentOrder.find(orderItem => orderItem.id === itemId);
-        
-        if (existingItem) {
-            existingItem.quantity += 1;
-        } else {
-            currentOrder.push({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                quantity: 1
-            });
-        }
-        
-        // Sync window variable
-        window.currentOrder = currentOrder;
-        
-        // Update order display
-        updateOrderDisplay();
-        
-        showNotification(`Đã thêm ${item.name} vào đơn hàng`, 'success');
-        console.log('✅ Item added to order:', item.name);
-        
-    } catch (error) {
-        console.error('❌ Error adding item to order:', error);
-        showNotification('Lỗi thêm món: ' + error.message, 'error');
-    }
-}
-
-// Update order display in sidebar
-function updateOrderDisplay() {
-    try {
-        const orderList = document.getElementById('order-items');
-        const orderTotal = document.getElementById('order-total');
-        
-        if (!orderList) {
-            console.log('📝 Order list element not found (order-items), will retry when needed');
-            return;
-        }
-        
-        if (currentOrder.length === 0) {
-            orderList.innerHTML = '<p class="empty-order">Chưa có món nào trong đơn hàng</p>';
-            if (orderTotal) orderTotal.textContent = formatPrice(0);
-            return;
-        }
-        
-        // Calculate total
-        const total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        
-        // Render order items
-        orderList.innerHTML = currentOrder.map(item => `
-            <div class="order-item">
-                <div class="order-item-info">
-                    <span class="item-name">${item.name}</span>
-                    <span class="item-price">${formatPrice(item.price)}</span>
-                </div>
-                <div class="order-item-controls">
-                    <button onclick="decreaseQuantity(${item.id})" class="btn-qty">-</button>
-                    <span class="quantity">${item.quantity}</span>
-                    <button onclick="increaseQuantity(${item.id})" class="btn-qty">+</button>
-                    <button onclick="removeFromOrder(${item.id})" class="btn-remove" title="Xóa món">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
-        
-        // Update total
-        if (orderTotal) {
-            orderTotal.textContent = formatPrice(total);
-        }
-        
-        console.log('✅ Order display updated:', currentOrder.length, 'items');
-        
-    } catch (error) {
-        console.error('❌ Error updating order display:', error);
-    }
-}
-
-// Quantity control functions
-function increaseQuantity(itemId) {
-    const item = currentOrder.find(i => i.id === itemId);
-    if (item) {
-        item.quantity += 1;
-        window.currentOrder = currentOrder;
-        updateOrderDisplay();
-    }
-}
-
-function decreaseQuantity(itemId) {
-    const item = currentOrder.find(i => i.id === itemId);
-    if (item && item.quantity > 1) {
-        item.quantity -= 1;
-        window.currentOrder = currentOrder;
-        updateOrderDisplay();
-    }
-}
-
-function removeFromOrder(itemId) {
-    currentOrder = currentOrder.filter(item => item.id !== itemId);
-    window.currentOrder = currentOrder;
-    updateOrderDisplay();
-    
-    const item = (window.menuData || fallbackMenuData).find(i => i.id === itemId);
-    if (item) {
-        showNotification(`Đã xóa ${item.name} khỏi đơn hàng`);
-    }
-}
-
-function openOrderModal() {
-    try {
-        console.log('📝 Opening order modal...');
-        
-        if (!currentOrder || currentOrder.length === 0) {
-            showNotification('Đơn hàng trống, vui lòng chọn món trước', 'warning');
-            return;
-        }
-        
-        const modal = document.getElementById('order-modal');
-        if (!modal) {
-            console.error('❌ Order modal not found');
-            return;
-        }
-          // Update modal content
-        updateOrderModalContent();
-          // Show modal with proper timing
-        modal.style.display = 'flex';
-        
-        // Force reflow to ensure display change is applied
-        modal.getBoundingClientRect();
-        
-        // Add show class with slight delay for transition
-        setTimeout(() => {
-            modal.classList.add('show');
-            console.log('✅ Order modal show class added');
-        }, 50);
-        
-        console.log('✅ Order modal opened');
-        
-    } catch (error) {
-        console.error('❌ Error opening order modal:', error);
-        showNotification('Lỗi mở modal đơn hàng: ' + error.message, 'error');
-    }
-}
-
-function closeOrderModal() {
-    try {
-        console.log('❌ Closing order modal...');
-        
-        const modal = document.getElementById('order-modal');
-        if (modal) {
-            modal.classList.remove('show');
-            setTimeout(() => {
-                modal.style.display = 'none';
-            }, 300);
-        }
-        
-        console.log('✅ Order modal closed');
-        
-    } catch (error) {
-        console.error('❌ Error closing order modal:', error);
-    }
-}
-
-function updateOrderModalContent() {
-    try {
-        const modalItems = document.getElementById('order-items');
-        const modalTotal = document.getElementById('order-total');
-        
-        if (!modalItems || !modalTotal) {
-            console.log('📝 Modal elements not found (order-items, order-total)');
-            return;
-        }
-        
-        if (currentOrder.length === 0) {
-            modalItems.innerHTML = '<p class="empty-order">Đơn hàng trống</p>';
-            modalTotal.textContent = formatPrice(0);
-            return;
-        }
-        
-        // Calculate total
-        const total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        
-        // Render items
-        modalItems.innerHTML = currentOrder.map(item => `
-            <div class="modal-order-item">
-                <span class="item-name">${item.name}</span>
-                <span class="item-details">${item.quantity} x ${formatPrice(item.price)}</span>
-                <span class="item-total">${formatPrice(item.price * item.quantity)}</span>
-            </div>
-        `).join('');
-        
-        modalTotal.textContent = formatPrice(total);
-        
-        console.log('✅ Order modal content updated');
-        
-    } catch (error) {
-        console.error('❌ Error updating order modal content:', error);
-    }
-}
-
-function confirmOrder() {
-    try {
-        console.log('✅ Confirming order...');
-        
-        if (!currentOrder || currentOrder.length === 0) {
-            showNotification('Đơn hàng trống, không thể xác nhận', 'warning');
-            return;
-        }
-        
-        // Create invoice
-        const invoice = createNewInvoice();
-        
-        if (invoice) {
-            // Close order modal
-            closeOrderModal();
-            
-            // Add to order history
-            const orderRecord = {
-                id: invoice.id,
-                items: [...invoice.items],
-                total: invoice.total,
-                timestamp: invoice.createdAt,
-                status: 'completed'
-            };
-            
-            orderHistory.push(orderRecord);
-            saveOrderHistory();
-            window.orderHistory = orderHistory;
-            
-            showNotification(`Đã xác nhận đơn hàng #${invoice.id}`, 'success');
-            console.log('✅ Order confirmed and added to history');
-            
-            // Select the new invoice for payment
-            selectInvoice(invoice.id);
-        }
-        
-    } catch (error) {
-        console.error('❌ Error confirming order:', error);
-        showNotification('Lỗi xác nhận đơn hàng: ' + error.message, 'error');
-    }
-}
-
-function openPaymentModal(invoice) {
-    try {
-        console.log('💳 Opening payment modal for:', invoice?.id);
-        
-        if (!invoice) {
-            showNotification('Không tìm thấy hóa đơn', 'error');
-            return;
-        }
-        
-        const modal = document.getElementById('payment-modal');
-        if (!modal) {
-            console.error('❌ Payment modal not found');
-            return;
-        }
-          // Update modal content
-        updatePaymentModalContent(invoice);
-        
-        // Add payment action buttons
-        const paymentActions = document.getElementById('payment-actions');
-        if (paymentActions) {
-            paymentActions.innerHTML = `
-                <button class="btn btn-secondary" onclick="closePaymentModal()">Hủy</button>
-                <button class="btn btn-success" onclick="confirmPayment()">
-                    <i class="fas fa-check"></i> Xác nhận đã thanh toán
-                </button>
-            `;
-        }
-          // Generate QR code for payment
-        generateQRCode(invoice.total);        // Show modal with proper timing
-        modal.style.display = 'flex';
-        
-        // Force reflow to ensure display change is applied
-        modal.getBoundingClientRect();
-        
-        // Add show class with slight delay for transition
-        setTimeout(() => {
-            modal.classList.add('show');
-            console.log('✅ Payment modal show class added');
-        }, 50);
-        
-        console.log('✅ Payment modal opened for invoice:', invoice.id);
-        
-    } catch (error) {
-        console.error('❌ Error opening payment modal:', error);
-        showNotification('Lỗi mở modal thanh toán: ' + error.message, 'error');
-    }
-}
-
-function updatePaymentModalContent(invoice) {
-    try {
-        const invoiceId = document.getElementById('payment-modal-title');
-        const invoiceItems = document.getElementById('payment-order-summary');
-        const invoiceTotal = document.getElementById('payment-total');
-        
-        if (invoiceId) invoiceId.textContent = `Thanh toán hóa đơn #${invoice.id}`;
-        
-        if (invoiceItems && invoice.items) {
-            invoiceItems.innerHTML = invoice.items.map(item => `
-                <div class="payment-item">
-                    <span>${item.quantity}x ${item.name}</span>
-                    <span>${formatPrice(item.price * item.quantity)}</span>
+        // Populate orders details
+        if (ordersDetailsEl) {
+            ordersDetailsEl.innerHTML = orders.map(order => `
+                <div class="shift-order-detail">
+                    <span>#${order.id}</span>
+                    <span>${formatDateTime(order.timestamp)}</span>
+                    <span>${formatPrice(order.total)}</span>
                 </div>
             `).join('');
         }
         
-        if (invoiceTotal) {
-            invoiceTotal.textContent = formatPrice(invoice.total);
-        }
-        
-        console.log('✅ Payment modal content updated');
-        
     } catch (error) {
-        console.error('❌ Error updating payment modal content:', error);
+        console.error('❌ Error populating end shift modal:', error);
     }
 }
 
-function confirmPayment() {
+function confirmEndShift() {
     try {
-        console.log('💰 Confirming payment...');
+        // Archive current shift
+        const currentShiftOrders = getCurrentShiftOrders();
+        const archiveData = {
+            shiftInfo: {
+                startTime: shiftStartTime,
+                endTime: new Date().toISOString(),
+                totalOrders: currentShiftOrders.length,
+                totalRevenue: currentShiftOrders.reduce((sum, order) => sum + (order.total || 0), 0)
+            },
+            orders: currentShiftOrders
+        };
         
-        if (!currentInvoiceId) {
-            showNotification('Không có hóa đơn được chọn', 'error');
-            return;
+        let archivedShifts = JSON.parse(localStorage.getItem('balancoffee_archived_shifts') || '[]');
+        archivedShifts.push(archiveData);
+        localStorage.setItem('balancoffee_archived_shifts', JSON.stringify(archivedShifts));
+        
+        // Start new shift
+        shiftStartTime = new Date().toISOString();
+        localStorage.setItem('shiftStartTime', shiftStartTime);
+        
+        closeEndShiftModal();
+        showNotification('Đã kết thúc ca và bắt đầu ca mới!', 'success');
+        
+        if (isAdminMode) {
+            displayCurrentShiftData();
         }
-        
-        const invoice = invoices.find(inv => inv.id === currentInvoiceId);
-        if (!invoice) {
-            showNotification('Không tìm thấy hóa đơn', 'error');
-            return;
-        }
-        
-        // Mark invoice as paid
-        invoice.status = 'paid';
-        invoice.paidAt = new Date().toISOString();
-        invoice.paymentMethod = 'qr';
-        
-        // Save changes
-        saveInvoices();
-        window.invoices = invoices;
-        
-        // Update UI
-        updateInvoiceDisplay();
-        updateInvoiceCount();
-          // Close payment modal
-        closePaymentModal();
-        
-        // Show success modal
-        showSuccessModal(invoice);
-        
-        console.log('✅ Payment confirmed for invoice:', invoice.id);
-        
-        // Clear current selection
-        currentInvoiceId = null;
-        window.currentInvoiceId = currentInvoiceId;
         
     } catch (error) {
-        console.error('❌ Error confirming payment:', error);
-        showNotification('Lỗi xác nhận thanh toán: ' + error.message, 'error');
+        console.error('❌ Error confirming end shift:', error);
+        showNotification('Lỗi kết thúc ca: ' + error.message, 'error');
     }
 }
 
-function closePaymentModal() {
+function closeEndShiftModal() {
     try {
-        console.log('❌ Closing payment modal...');
-        
-        const modal = document.getElementById('payment-modal');
+        const modal = document.getElementById('end-shift-modal');
         if (modal) {
             modal.classList.remove('show');
             setTimeout(() => {
                 modal.style.display = 'none';
             }, 300);
         }
-        
-        console.log('✅ Payment modal closed');
-        
     } catch (error) {
-        console.error('❌ Error closing payment modal:', error);
+        console.error('❌ Error closing end shift modal:', error);
     }
 }
 
-function selectInvoice(invoiceId) {
+// =============================================================================
+// SIDEBAR FUNCTIONS
+// =============================================================================
+
+function toggleSidebar() {
     try {
-        console.log('📋 Select invoice called:', invoiceId);
+        console.log('🔄 Toggle sidebar called');
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) {
+            console.error('❌ Sidebar element not found');
+            return;
+        }
+        
+        const isCurrentlyCollapsed = sidebar.classList.contains('collapsed');
+        console.log('📱 Sidebar current state:', isCurrentlyCollapsed ? 'collapsed' : 'expanded');
+        
+        // Toggle the collapsed class
+        sidebar.classList.toggle('collapsed');
+        
+        // Update close button icon
+        const closeBtn = sidebar.querySelector('.close-sidebar i');
+        if (closeBtn) {
+            if (sidebar.classList.contains('collapsed')) {
+                closeBtn.className = 'fas fa-chevron-left';
+                console.log('✅ Sidebar collapsed, icon updated');
+            } else {
+                closeBtn.className = 'fas fa-chevron-right';
+                console.log('✅ Sidebar expanded, icon updated');
+            }
+        }
+        
+        // Handle overlay click for mobile
+        if (!sidebar.classList.contains('collapsed')) {
+            // Add overlay click handler after a delay to prevent immediate close
+            setTimeout(() => {
+                const handleOverlayClick = (e) => {
+                    // Check if click is outside sidebar and on mobile
+                    if (window.innerWidth <= 768 && 
+                        !sidebar.contains(e.target) && 
+                        !sidebar.classList.contains('collapsed') &&
+                        !e.target.closest('.cart-toggle')) { // Don't close if clicking cart toggle
+                        
+                        sidebar.classList.add('collapsed');
+                        if (closeBtn) closeBtn.className = 'fas fa-chevron-left';
+                        document.removeEventListener('click', handleOverlayClick);
+                        console.log('✅ Sidebar closed by overlay click');
+                    }
+                };
+                document.addEventListener('click', handleOverlayClick);
+            }, 100);
+        }
+        
+        // Announce to screen reader
+        const status = sidebar.classList.contains('collapsed') ? 'đã đóng' : 'đã mở';
+        if (window.announceToScreenReader) {
+            window.announceToScreenReader(`Danh sách hóa đơn ${status}`);
+        }
+        
+    } catch (error) {
+        console.error('❌ Error toggling sidebar:', error);
+        showNotification('Lỗi thao tác sidebar: ' + error.message, 'error');
+    }
+}
+
+// =============================================================================
+// INITIALIZATION
+// =============================================================================
+
+function initializeApp() {
+    try {
+        console.log('🚀 Initializing BalanCoffee app...');
+        
+        // Load data
+        loadInvoices();
+        loadOrderHistory();
+        getShiftStartTime();
+        loadShiftEmployee();
+        
+        // Update UI
+        updateInvoiceDisplay();
+        updateInvoiceCount();
+        renderMenu();
+        updateShiftInfoDisplay();
+        
+        // Set up category filters
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterMenu(btn.dataset.category);
+            });
+        });
+        
+        console.log('✅ BalanCoffee app initialized successfully');
+        
+    } catch (error) {
+        console.error('❌ Error initializing app:', error);
+        showNotification('Lỗi khởi tạo ứng dụng: ' + error.message, 'error');
+    }
+}
+
+// Initialize when DOM is ready
+ensureDOMReady(() => {
+    initializeApp();
+    initializeAdvancedFeatures();
+});
+
+// Expose key functions to window for compatibility
+window.formatPrice = formatPrice;
+window.formatDateTime = formatDateTime;
+window.showNotification = showNotification;
+window.renderMenu = renderMenu;
+window.addToOrder = addToOrder;
+window.createNewInvoice = createNewInvoice;
+window.openOrderModal = openOrderModal;
+window.closeOrderModal = closeOrderModal;
+window.confirmOrder = confirmOrder;
+window.openPaymentModal = openPaymentModal;
+window.closePaymentModal = closePaymentModal;
+window.confirmPayment = confirmPayment;
+window.updateOrderDisplay = updateOrderDisplay;
+window.updateInvoiceDisplay = updateInvoiceDisplay;
+window.filterMenu = filterMenu;
+window.clearCurrentOrder = clearCurrentOrder;
+window.toggleAdmin = toggleAdmin;
+window.startNewShift = startNewShift;
+window.viewCurrentShift = viewCurrentShift;
+window.endShift = endShift;
+window.confirmEndShift = confirmEndShift;
+window.closeEndShiftModal = closeEndShiftModal;
+window.selectInvoice = selectInvoice;
+window.editInvoice = editInvoice;
+window.finishEditInvoice = finishEditInvoice;
+window.deselectInvoice = deselectInvoice;
+window.deleteInvoiceById = deleteInvoiceById;
+window.processPayment = processPayment;
+window.toggleSidebar = toggleSidebar;
+window.increaseQuantity = increaseQuantity;
+window.decreaseQuantity = decreaseQuantity;
+window.removeFromOrder = removeFromOrder;
+window.closeSuccessModal = closeSuccessModal;
+window.openEmployeeModal = openEmployeeModal;
+window.closeEmployeeModal = closeEmployeeModal;
+window.confirmEmployeeInfo = confirmEmployeeInfo;
+window.updateShiftInfoDisplay = updateShiftInfoDisplay;
+
+// =============================================================================
+// ORDER EDITING FUNCTIONS
+// =============================================================================
+
+function finishEditInvoice(invoiceId) {
+    try {
+        console.log('✅ Finishing edit for invoice:', invoiceId);
         
         const invoice = invoices.find(inv => inv.id === invoiceId);
         if (!invoice) {
-            console.error('❌ Invoice not found:', invoiceId);
             showNotification('Không tìm thấy hóa đơn', 'error');
             return;
         }
         
-        currentInvoiceId = invoiceId;
-        window.currentInvoiceId = currentInvoiceId; // Sync window variable
+        // Remove editing state
+        delete invoice.isEditing;
         
-        // Load invoice items into current order for editing
-        currentOrder = [...(invoice.items || [])];
-        window.currentOrder = currentOrder; // Sync window variable
-        
-        console.log('✅ Invoice loaded for editing:', invoice);
-        
-        updateInvoiceDisplay();
-        updateOrderDisplay();
-        showSidebarControls();
-        
-        showNotification(`Đã chọn hóa đơn #${invoiceId} để chỉnh sửa`, 'success');
-        
-    } catch (error) {
-        console.error('❌ Error selecting invoice:', error);
-        showNotification('Lỗi chọn hóa đơn: ' + error.message, 'error');
-    }
-}
-
-function deselectInvoice() {
-    try {
-        console.log('📋 Deselecting invoice...');
-        
+        // Clear current editing state
         currentInvoiceId = null;
-        window.currentInvoiceId = currentInvoiceId; // Sync window variable
+        window.currentInvoiceId = currentInvoiceId;
         
-        // Clear current order
         currentOrder = [];
-        window.currentOrder = currentOrder; // Sync window variable
+        window.currentOrder = currentOrder;
         
+        saveInvoices();
         updateInvoiceDisplay();
         updateOrderDisplay();
         hideSidebarControls();
         
-        showNotification('Đã bỏ chọn hóa đơn', 'info');
+        showNotification(`Đã hoàn tất chỉnh sửa hóa đơn #${invoiceId}`, 'success');
         
     } catch (error) {
-        console.error('❌ Error deselecting invoice:', error);
-        showNotification('Lỗi bỏ chọn hóa đơn: ' + error.message, 'error');
-    }
-}
-
-function showSidebarControls() {
-    try {
-        const controls = document.getElementById('sidebar-controls');
-        if (controls) {
-            controls.style.display = 'flex';
-        }
-    } catch (error) {
-        console.error('❌ Error showing sidebar controls:', error);
-    }
-}
-
-function hideSidebarControls() {
-    try {
-        const controls = document.getElementById('sidebar-controls');
-        if (controls) {
-            controls.style.display = 'none';
-        }
-    } catch (error) {
-        console.error('❌ Error hiding sidebar controls:', error);
+        console.error('❌ Error finishing edit invoice:', error);
+        showNotification('Lỗi hoàn tất chỉnh sửa: ' + error.message, 'error');
     }
 }
 
 // =============================================================================
-// SHIFT MANAGEMENT FUNCTIONS
+// ADVANCED UI/UX ENHANCEMENT FUNCTIONS
 // =============================================================================
 
-function startNewShift() {
-    const confirmStart = confirm('Bạn có chắc chắn muốn bắt đầu ca mới? Dữ liệu ca hiện tại sẽ được lưu trữ.');
-    
-    if (confirmStart) {
-        try {
-            // Save current shift data before starting new one
-            const currentShiftOrders = getCurrentShiftOrders();
-            if (currentShiftOrders.length > 0) {
-                // Archive current shift data
-                const archiveData = {
-                    shiftInfo: {
-                        startTime: shiftStartTime,
-                        endTime: new Date().toISOString(),
-                        totalOrders: currentShiftOrders.length,
-                        totalRevenue: currentShiftOrders.reduce((sum, order) => sum + (order.total || 0), 0)
-                    },
-                    orders: currentShiftOrders
-                };
-                
-                // Save to archived shifts
-                let archivedShifts = JSON.parse(localStorage.getItem('balancoffee_archived_shifts') || '[]');
-                archivedShifts.push(archiveData);
-                localStorage.setItem('balancoffee_archived_shifts', JSON.stringify(archivedShifts));
-                
-                showNotification('Đã lưu trữ dữ liệu ca cũ', 'success');
-            }
-            
-            // Reset shift start time
-            shiftStartTime = new Date().toISOString();
-            localStorage.setItem('shiftStartTime', shiftStartTime);
-            
-            // Clear current shift data from order history
-            const shiftStartDate = new Date(shiftStartTime);
-            orderHistory = orderHistory.filter(order => {
-                if (!order.timestamp) return true;
-                const orderDate = new Date(order.timestamp);
-                return orderDate < shiftStartDate;
-            });
-            
-            saveOrderHistory();
-            
-            // Clear pending invoices if any
-            const currentTime = new Date(shiftStartTime);
-            invoices = invoices.filter(invoice => {
-                if (!invoice.createdAt) return true;
-                const invoiceDate = new Date(invoice.createdAt);
-                return invoiceDate < currentTime;
-            });
-            
-            saveInvoices();
-            
-            // Refresh display
-            if (isAdminMode) {
-                displayCurrentShiftData();
-            }
-            updateInvoiceDisplay();
-            updateInvoiceCount();
-            
-            showNotification('Đã bắt đầu ca mới thành công!', 'success');
-            console.log('✅ New shift started at:', new Date(shiftStartTime).toLocaleString());
-            
-        } catch (error) {
-            console.error('❌ Error starting new shift:', error);
-            showNotification('Lỗi bắt đầu ca mới: ' + error.message, 'error');
-        }
-    }
-}
+// Network status monitoring
+let networkStatus = navigator.onLine;
+let networkStatusIndicator = null;
 
-function viewCurrentShift() {
-    displayCurrentShiftData();
-    showNotification('Đã cập nhật thông tin ca hiện tại');
-}
-
-function endShift() {
-    const currentShiftOrders = getCurrentShiftOrders();
-    
-    if (currentShiftOrders.length === 0) {
-        showNotification('Không có đơn hàng nào trong ca này để kết thúc', 'warning');
-        return;
-    }
-    
-    // Populate shift summary modal
-    populateEndShiftModal(currentShiftOrders);
-      // Show modal with proper timing
-    const modal = document.getElementById('end-shift-modal');
-    if (modal) {
-        modal.style.display = 'flex';
+function initializeNetworkMonitoring() {
+    try {
+        window.addEventListener('online', handleNetworkOnline);
+        window.addEventListener('offline', handleNetworkOffline);
         
-        // Force reflow to ensure display change is applied
-        modal.getBoundingClientRect();
+        // Create network status indicator (initially hidden)
+        networkStatusIndicator = document.createElement('div');
+        networkStatusIndicator.className = 'network-status';
+        networkStatusIndicator.innerHTML = `
+            <i class="fas fa-wifi-slash"></i>
+            <span>Mất kết nối mạng - Đang hoạt động offline</span>
+        `;
+        document.body.appendChild(networkStatusIndicator);
+        
+        // Show status only if currently offline
+        if (!navigator.onLine) {
+            networkStatusIndicator.classList.add('show');
+        }
+        
+        console.log('✅ Network monitoring initialized, status:', navigator.onLine ? 'online' : 'offline');
+    } catch (error) {
+        console.error('❌ Error initializing network monitoring:', error);
+    }
+}
+
+function handleNetworkOnline() {
+    networkStatus = true;
+    if (networkStatusIndicator) {
+        networkStatusIndicator.classList.remove('show');
+        networkStatusIndicator.innerHTML = `
+            <i class="fas fa-wifi"></i>
+            <span>Đã kết nối lại</span>
+        `;
+        networkStatusIndicator.classList.add('online');
+        networkStatusIndicator.classList.add('show');
         
         setTimeout(() => {
-            modal.classList.add('show');
-            console.log('✅ End shift modal show class added');
-        }, 50);
+            networkStatusIndicator.classList.remove('show');
+        }, 3000);
+    }
+    console.log('✅ Network back online');
+}
+
+function handleNetworkOffline() {
+    networkStatus = false;
+    if (networkStatusIndicator) {
+        networkStatusIndicator.classList.remove('online');
+        networkStatusIndicator.innerHTML = `
+            <i class="fas fa-wifi-slash"></i>
+            <span>Mất kết nối mạng - Đang hoạt động offline</span>
+        `;
+        networkStatusIndicator.classList.add('show');
+    }
+    console.log('⚠️ Network offline');
+}
+
+// Touch gesture enhancements
+function initializeTouchGestures() {
+    try {
+        // Swipe to close modal on mobile
+        document.addEventListener('touchstart', handleTouchStart, false);
+        document.addEventListener('touchmove', handleTouchMove, false);
+        document.addEventListener('touchend', handleTouchEnd, false);
+        
+        console.log('✅ Touch gestures initialized');
+    } catch (error) {
+        console.error('❌ Error initializing touch gestures:', error);
     }
 }
 
-function getCurrentShiftOrders() {
-    if (!orderHistory || orderHistory.length === 0) {
-        orderHistory = loadOrderHistory();
+let touchStartY = null;
+let touchStartX = null;
+
+function handleTouchStart(event) {
+    const firstTouch = event.touches[0];
+    touchStartY = firstTouch.clientY;
+    touchStartX = firstTouch.clientX;
+}
+
+function handleTouchMove(event) {
+    if (!touchStartY || !touchStartX) return;
+    
+    const touchY = event.touches[0].clientY;
+    const touchX = event.touches[0].clientX;
+    
+    const diffY = touchStartY - touchY;
+    const diffX = touchStartX - touchX;
+    
+    // Prevent scroll when modal is open
+    const modal = document.querySelector('.modal.show');
+    if (modal && Math.abs(diffY) > Math.abs(diffX)) {
+        const modalContent = modal.querySelector('.modal-content');
+        const rect = modalContent.getBoundingClientRect();
+        
+        if (touchStartY < rect.top) {
+            event.preventDefault();
+        }
+    }
+}
+
+function handleTouchEnd(event) {
+    if (!touchStartY || !touchStartX) return;
+    
+    const touchY = event.changedTouches[0].clientY;
+    const diffY = touchStartY - touchY;
+    
+    // Swipe down to close modal
+    if (diffY < -100) {
+        const modal = document.querySelector('.modal.show');
+        if (modal) {
+            const modalContent = modal.querySelector('.modal-content');
+            const rect = modalContent.getBoundingClientRect();
+            
+            if (touchStartY < rect.top + 50) {
+                if (modal.id === 'payment-modal') closePaymentModal();
+                else if (modal.id === 'order-modal') closeOrderModal();
+                else if (modal.id === 'employee-modal') closeEmployeeModal();
+                else if (modal.id === 'end-shift-modal') closeEndShiftModal();
+            }
+        }
     }
     
-    const currentShiftStart = new Date(shiftStartTime);
+    touchStartY = null;
+    touchStartX = null;
+}
+
+// Performance monitoring
+function initializePerformanceMonitoring() {
+    try {
+        // Monitor app performance
+        let performanceMetrics = {
+            loadTime: 0,
+            renderTime: 0,
+            interactionCount: 0
+        };
+        
+        // Measure initial load time
+        window.addEventListener('load', () => {
+            performanceMetrics.loadTime = performance.now();
+            console.log(`📊 App load time: ${performanceMetrics.loadTime.toFixed(2)}ms`);
+        });
+        
+        // Monitor large operations
+        const originalRenderMenu = renderMenu;
+        renderMenu = function() {
+            const startTime = performance.now();
+            originalRenderMenu.apply(this, arguments);
+            const endTime = performance.now();
+            performanceMetrics.renderTime = endTime - startTime;
+            console.log(`📊 Menu render time: ${performanceMetrics.renderTime.toFixed(2)}ms`);
+        };
+        
+        // Store metrics globally for debugging
+        window.performanceMetrics = performanceMetrics;
+        
+        console.log('✅ Performance monitoring initialized');
+    } catch (error) {
+        console.error('❌ Error initializing performance monitoring:', error);
+    }
+}
+
+// Data validation and sanitization
+function validateOrderData(order) {
+    if (!Array.isArray(order)) return false;
     
-    return orderHistory.filter(order => {
-        if (!order.timestamp) return false;
-        const orderDate = new Date(order.timestamp);
-        return orderDate >= currentShiftStart;
+    return order.every(item => {
+        return item.id && 
+               typeof item.id === 'number' &&
+               item.name && 
+               typeof item.name === 'string' &&
+               item.price && 
+               typeof item.price === 'number' &&
+               item.quantity && 
+               typeof item.quantity === 'number' &&
+               item.quantity > 0;
     });
 }
 
-function displayCurrentShiftData() {
-    const currentShiftOrders = getCurrentShiftOrders();
-    updateCurrentShiftSummary(currentShiftOrders);
-    displayCurrentShiftOrders(currentShiftOrders);
+function sanitizeInput(input) {
+    if (typeof input !== 'string') return '';
+    
+    return input
+        .trim()
+        .replace(/[<>]/g, '') // Remove HTML tags
+        .substring(0, 255); // Limit length
 }
 
-function updateCurrentShiftSummary(orders) {
-    if (!orders) orders = [];
-    
-    const totalOrders = orders
+// Auto-save functionality
+let autoSaveInterval = null;
+
+function initializeAutoSave() {
+    try {
+        // Auto-save every 30 seconds
+        autoSaveInterval = setInterval(() => {
+            if (currentOrder.length > 0) {
+                localStorage.setItem('balancoffee_temp_order', JSON.stringify(currentOrder));
+                console.log('💾 Auto-saved current order');
+            }
+        }, 30000);
+        
+        // Load temp order on startup
+        const tempOrder = localStorage.getItem('balancoffee_temp_order');
+        if (tempOrder) {
+            try {
+                const parsedOrder = JSON.parse(tempOrder);
+                if (validateOrderData(parsedOrder) && parsedOrder.length > 0) {
+                    const restore = confirm('Phát hiện đơn hàng chưa hoàn thành. Bạn có muốn khôi phục không?');
+                    if (restore) {
+                        currentOrder = parsedOrder;
+                        window.currentOrder = currentOrder;
+                        updateOrderDisplay();
+                        showNotification('Đã khôi phục đơn hàng chưa hoàn thành', 'success');
+                    }
+                    localStorage.removeItem('balancoffee_temp_order');
+                }
+            } catch (e) {
+                localStorage.removeItem('balancoffee_temp_order');
+            }
+        }
+        
+        console.log('✅ Auto-save initialized');
+    } catch (error) {
+        console.error('❌ Error initializing auto-save:', error);
+    }
+}
+
+// Keyboard shortcuts
+function initializeKeyboardShortcuts() {
+    try {
+        document.addEventListener('keydown', (event) => {
+            // Only handle shortcuts when not in input fields
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            // Ctrl/Cmd + N: New order
+            if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
+                event.preventDefault();
+                if (currentOrder.length > 0) {
+                    openOrderModal();
+                } else {
+                    showNotification('Đơn hàng trống', 'warning');
+                }
+            }
+            
+            // Ctrl/Cmd + S: Toggle sidebar
+            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+                event.preventDefault();
+                toggleSidebar();
+            }
+            
+            // Escape: Close modals
+            if (event.key === 'Escape') {
+                const modal = document.querySelector('.modal.show');
+                if (modal) {
+                    if (modal.id === 'payment-modal') closePaymentModal();
+                    else if (modal.id === 'order-modal') closeOrderModal();
+                    else if (modal.id === 'employee-modal') closeEmployeeModal();
+                    else if (modal.id === 'end-shift-modal') closeEndShiftModal();
+                }
+            }
+            
+            // F1: Help (toggle admin mode)
+            if (event.key === 'F1') {
+                event.preventDefault();
+                toggleAdmin();
+            }
+        });
+        
+        console.log('✅ Keyboard shortcuts initialized');
+    } catch (error) {
+        console.error('❌ Error initializing keyboard shortcuts:', error);
+    }
+}
+
+// Accessibility improvements
+function initializeAccessibility() {
+    try {
+        // Announce dynamic content changes to screen readers
+        const announcer = document.createElement('div');
+        announcer.setAttribute('aria-live', 'polite');
+        announcer.setAttribute('aria-atomic', 'true');
+        announcer.className = 'sr-only';
+        announcer.id = 'accessibility-announcer';
+        document.body.appendChild(announcer);
+        
+        // High contrast mode detection
+        if (window.matchMedia('(prefers-contrast: high)').matches) {
+            document.body.classList.add('high-contrast');
+        }
+        
+        // Reduced motion detection
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            document.body.classList.add('reduced-motion');
+        }
+        
+        console.log('✅ Accessibility features initialized');
+    } catch (error) {
+        console.error('❌ Error initializing accessibility:', error);
+    }
+}
+
+function announceToScreenReader(message) {
+    try {
+        const announcer = document.getElementById('accessibility-announcer');
+        if (announcer) {
+            announcer.textContent = message;
+            setTimeout(() => {
+                announcer.textContent = '';
+            }, 1000);
+        }
+    } catch (error) {
+        console.error('❌ Error announcing to screen reader:', error);
+    }
+}
+
+// Utility functions
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function throttle(func, limit) {
+    let inThrottle;
+    return function() {
+        const args = arguments;
+        const context = this;
+        if (!inThrottle) {
+            func.apply(context, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+}
+
+// Error boundary for unhandled errors
+function initializeErrorHandling() {
+    try {
+        window.addEventListener('error', (event) => {
+            console.error('🚨 Unhandled error:', event.error);
+            showNotification('Đã xảy ra lỗi không mong muốn. Vui lòng tải lại trang.', 'error');
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('🚨 Unhandled promise rejection:', event.reason);
+            showNotification('Đã xảy ra lỗi hệ thống. Vui lòng thử lại.', 'error');
+        });
+        
+        console.log('✅ Error handling initialized');
+    } catch (error) {
+        console.error('❌ Error initializing error handling:', error);
+    }
+}
+
+// =============================================================================
+// ENHANCED INITIALIZATION
+// =============================================================================
+
+function initializeAdvancedFeatures() {
+    try {
+        console.log('🚀 Initializing advanced features...');
+          // Initialize all advanced features
+        initializeNetworkMonitoring();
+        initializeTouchGestures();
+        initializePerformanceMonitoring();
+        initializeAutoSave();
+        initializeKeyboardShortcuts();
+        initializeAccessibility();
+        initializeErrorHandling();
+          // Setup loading screen removal
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-screen');
+            const appContainer = document.getElementById('app-container');
+            
+            if (loadingScreen && appContainer) {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    appContainer.style.display = 'block';
+                    appContainer.style.opacity = '1';
+                }, 500);
+            }
+        }, 2000);
+        
+        console.log('✅ Advanced features initialized successfully');
+        
+    } catch (error) {
+        console.error('❌ Error initializing advanced features:', error);
+        showNotification('Một số tính năng nâng cao không thể khởi tạo', 'warning');
+    }
+}
+
+// Expose new functions to window
+window.validateOrderData = validateOrderData;
+window.sanitizeInput = sanitizeInput;
+window.announceToScreenReader = announceToScreenReader;
+window.initializeAdvancedFeatures = initializeAdvancedFeatures;
+
+console.log('📋 BalanCoffee script loaded - Version 8.5 Advanced Features Complete');
