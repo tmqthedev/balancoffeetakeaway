@@ -507,6 +507,7 @@ body {
     cursor: pointer;
     position: relative;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    min-height: 120px;
 }
 
 .menu-item-card:hover {
@@ -515,40 +516,13 @@ body {
     transform: translateY(-2px);
 }
 
-.menu-item-image {
-    height: 120px;
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-}
-
-.menu-item-image::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="coffee-pattern" patternUnits="userSpaceOnUse" width="20" height="20"><circle cx="10" cy="10" r="2" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23coffee-pattern)"/></svg>');
-    opacity: 0.3;
-}
-
-.menu-item-image i {
-    font-size: 2.5rem;
-    color: white;
-    z-index: 1;
-    position: relative;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
 .menu-item-content {
     padding: var(--spacing-lg);
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+    height: 100%;
+    justify-content: space-between;
 }
 
 .menu-item-info {
@@ -826,14 +800,15 @@ body {
     transition: transform var(--transition-normal);
     z-index: var(--z-sidebar);
     border-left: 3px solid var(--primary-color);
+    will-change: transform;
 }
 
 .sidebar.collapsed {
-    transform: translateX(100%);
+    transform: translateX(100%) !important;
 }
 
 .sidebar:not(.collapsed) {
-    transform: translateX(0);
+    transform: translateX(0) !important;
 }
 
 .sidebar-backdrop {

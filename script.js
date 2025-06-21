@@ -470,15 +470,11 @@ function renderMenu() {
         if (filteredItems.length === 0) {
             menuContainer.innerHTML = '<p class="no-items">Không có món nào trong danh mục này.</p>';
             return;
-        }
-          filteredItems.forEach(item => {
+        }          filteredItems.forEach(item => {
             const menuItem = document.createElement('div');
             menuItem.className = 'menu-item-card';
             menuItem.setAttribute('data-category', item.category);
             menuItem.innerHTML = `
-                <div class="menu-item-image">
-                    <i class="fas fa-coffee"></i>
-                </div>
                 <div class="menu-item-content">
                     <div class="menu-item-info">
                         <h3 class="item-name">${item.name}</h3>
@@ -1757,19 +1753,22 @@ function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
         if (!sidebar) {
             console.error('❌ Sidebar element not found');
+            showNotification('Lỗi: Không tìm thấy sidebar', 'error');
             return;
         }
         
         const isCurrentlyCollapsed = sidebar.classList.contains('collapsed');
         console.log('📱 Sidebar current state:', isCurrentlyCollapsed ? 'collapsed' : 'expanded');
         
-        // Toggle the collapsed class
+        // Force toggle state
         if (isCurrentlyCollapsed) {
             sidebar.classList.remove('collapsed');
-            console.log('✅ Sidebar expanded');
+            sidebar.style.transform = 'translateX(0)';
+            console.log('✅ Sidebar expanding...');
         } else {
             sidebar.classList.add('collapsed');
-            console.log('✅ Sidebar collapsed');
+            sidebar.style.transform = 'translateX(100%)';
+            console.log('✅ Sidebar collapsing...');
         }
         
         // Update close button icon
@@ -1777,45 +1776,55 @@ function toggleSidebar() {
         if (closeBtn) {
             if (sidebar.classList.contains('collapsed')) {
                 closeBtn.className = 'fas fa-chevron-left';
-                console.log('✅ Sidebar collapsed, icon updated to chevron-left');
+                console.log('✅ Icon set to chevron-left (collapsed)');
             } else {
                 closeBtn.className = 'fas fa-chevron-right';
-                console.log('✅ Sidebar expanded, icon updated to chevron-right');
+                console.log('✅ Icon set to chevron-right (expanded)');
             }
-        }
-        
-        // Handle overlay click for mobile
-        if (!sidebar.classList.contains('collapsed')) {
-            // Add overlay click handler after a delay to prevent immediate close
-            setTimeout(() => {
-                const handleOverlayClick = (e) => {
-                    // Check if click is outside sidebar and on mobile
-                    if (window.innerWidth <= 768 && 
-                        !sidebar.contains(e.target) && 
-                        !sidebar.classList.contains('collapsed') &&
-                        !e.target.closest('.cart-toggle')) { // Don't close if clicking cart toggle
-                        
-                        sidebar.classList.add('collapsed');
-                        if (closeBtn) closeBtn.className = 'fas fa-chevron-left';
-                        document.removeEventListener('click', handleOverlayClick);
-                        console.log('✅ Sidebar closed by overlay click');
-                    }
-                };
-                document.addEventListener('click', handleOverlayClick);
-            }, 100);
-        }
-        
-        // Announce to screen reader
-        const status = sidebar.classList.contains('collapsed') ? 'đã đóng' : 'đã mở';
-        if (window.announceToScreenReader) {
-            window.announceToScreenReader(`Danh sách hóa đơn ${status}`);
+        } else {
+            console.warn('⚠️ Close button not found');
         }
         
         // Force update invoice display when sidebar opens
         if (!sidebar.classList.contains('collapsed')) {
-            updateInvoiceDisplay();
-            updateInvoiceCount();
+            console.log('🔄 Sidebar opened - updating invoice display');
+            setTimeout(() => {
+                updateInvoiceDisplay();
+                updateInvoiceCount();
+            }, 100);
         }
+        
+        // Handle mobile overlay
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile && !sidebar.classList.contains('collapsed')) {
+            console.log('📱 Mobile mode - setting up overlay click');
+            
+            // Add backdrop click handler
+            const handleBackdropClick = (e) => {
+                if (!sidebar.contains(e.target) && 
+                    !e.target.closest('.cart-toggle') &&
+                    !sidebar.classList.contains('collapsed')) {
+                    
+                    sidebar.classList.add('collapsed');
+                    sidebar.style.transform = 'translateX(100%)';
+                    if (closeBtn) closeBtn.className = 'fas fa-chevron-left';
+                    document.removeEventListener('click', handleBackdropClick);
+                    console.log('✅ Sidebar closed by backdrop click');
+                }
+            };
+            
+            // Add handler after a short delay
+            setTimeout(() => {
+                document.addEventListener('click', handleBackdropClick);
+            }, 200);
+        }
+        
+        // Announce to screen reader
+        const status = sidebar.classList.contains('collapsed') ? 'đã đóng' : 'đã mở';
+        console.log(`📢 Sidebar ${status}`);
+        
+        // Visual feedback notification
+        showNotification(`Sidebar ${status}`, 'info');
         
     } catch (error) {
         console.error('❌ Error toggling sidebar:', error);
@@ -1837,14 +1846,26 @@ function initializeApp() {
         getShiftStartTime();
         loadShiftEmployee();
         
-        // Ensure sidebar starts collapsed
+        // Ensure sidebar starts collapsed and fix any issues
         const sidebar = document.getElementById('sidebar');
         if (sidebar) {
+            console.log('🔧 Setting up sidebar initial state...');
             sidebar.classList.add('collapsed');
+            sidebar.style.transform = 'translateX(100%)';
+            
             const closeBtn = sidebar.querySelector('.close-sidebar i');
             if (closeBtn) {
                 closeBtn.className = 'fas fa-chevron-left';
+                console.log('✅ Sidebar close button icon set');
             }
+            
+            // Test sidebar functionality
+            console.log('🧪 Testing sidebar...');
+            console.log('Sidebar element found:', !!sidebar);
+            console.log('Sidebar classes:', sidebar.className);
+            console.log('Sidebar transform:', sidebar.style.transform);
+        } else {
+            console.error('❌ Sidebar element not found during initialization');
         }
         
         // Update UI
@@ -1859,6 +1880,24 @@ function initializeApp() {
                 filterMenu(btn.dataset.category);
             });
         });
+        
+        // Add debug sidebar test button (for development)
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            console.log('🔧 Development mode - adding debug controls');
+            window.debugSidebar = function() {
+                const sidebar = document.getElementById('sidebar');
+                console.log('=== SIDEBAR DEBUG ===');
+                console.log('Element exists:', !!sidebar);
+                if (sidebar) {
+                    console.log('Classes:', sidebar.className);
+                    console.log('Style transform:', sidebar.style.transform);
+                    console.log('Computed transform:', window.getComputedStyle(sidebar).transform);
+                    console.log('Width:', window.getComputedStyle(sidebar).width);
+                    console.log('Z-index:', window.getComputedStyle(sidebar).zIndex);
+                }
+                console.log('==================');
+            };
+        }
         
         console.log('✅ BalanCoffee app initialized successfully');
         
