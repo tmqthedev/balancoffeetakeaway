@@ -8,10 +8,8 @@
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
-    
-    <link rel="stylesheet" href="styles.css">
+      <link rel="stylesheet" href="styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -49,13 +47,13 @@
                 </div>
             </section>            <!-- Admin Section -->
             <section class="admin-section" id="admin-section" style="display: none;">
-                <h2>Quản Lý Ca Làm Việc</h2>
-                <div class="admin-controls">
+                <h2>Quản Lý Ca Làm Việc</h2>                <div class="admin-controls">
                     <div class="shift-controls">
+                        <button class="btn btn-success" onclick="startNewShift()">Bắt đầu ca mới</button>
                         <button class="btn btn-primary" onclick="viewCurrentShift()">Xem ca hiện tại</button>
                         <button class="btn btn-danger" onclick="endShift()">Kết thúc ca</button>
                     </div>
-                </div>                <div class="summary-cards">
+                </div><div class="summary-cards">
                     <div class="summary-card">
                         <h3>Đơn hàng trong ca</h3>
                         <p id="current-shift-orders">0</p>
@@ -161,11 +159,8 @@
                         <p class="payment-instruction">
                             Sử dụng ứng dụng ngân hàng để quét mã QR và thanh toán
                         </p>
-                    </div>
-                    <div class="payment-actions">
-                        <button class="btn btn-success btn-full" onclick="confirmPayment()">
-                            Xác nhận đã thanh toán
-                        </button>
+                    </div>                    <div class="payment-actions" id="payment-actions">
+                        <!-- Payment buttons will be set by JavaScript -->
                     </div>
                 </div>
             </div>
@@ -235,9 +230,8 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <script src="data.js"></script>
+    </div>    <script src="data.js"></script>
+    <script src="dom-helper.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

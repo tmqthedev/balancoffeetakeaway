@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BalanCoffee - Complete Test</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        .test-overlay {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 100vh;
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 10px;
+            z-index: 10000;
+            overflow-y: auto;
+            font-size: 11px;
+            font-family: monospace;
+        }
+        .test-overlay h3 {
+            margin: 0 0 10px 0;
+            color: #4CAF50;
+        }
+        .test-overlay .status {
+            margin: 2px 0;
+        }
+        .test-overlay .found { color: #4CAF50; }
+        .test-overlay .missing { color: #f44336; }
+        .test-overlay .warning { color: #ff9800; }
+        .test-overlay button {
+            margin: 2px;
+            padding: 4px 8px;
+            background: #007cba;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        .test-overlay button:hover {
+            background: #005a87;
+        }
+        .test-overlay .log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(255,255,255,0.1);
+            padding: 5px;
+            margin: 5px 0;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-coffee"></i>
+                <h1>BalanCoffee</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="toggleAdmin()">
+                    <i class="fas fa-chart-bar"></i>
+                    Quản lý
+                </button>
+                <button class="cart-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-receipt"></i>
+                    Hóa đơn (<span id="invoice-count">0</span>)
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Menu Section -->
+            <section class="menu-section">
+                <h2>Menu Đồ Uống</h2>
+                <div class="menu-categories">
+                    <button class="category-btn active" data-category="all">Tất cả</button>
+                    <button class="category-btn" data-category="cafe-viet">Cà phê Việt</button>
+                    <button class="category-btn" data-category="cafe-y">Cà phê Ý</button>
+                    <button class="category-btn" data-category="tra-trai-cay">Trả trái cây</button>
+                    <button class="category-btn" data-category="matcha">Matcha</button>
+                    <button class="category-btn" data-category="soda">Soda</button>
+                    <button class="category-btn" data-category="cacao">Cacao</button>
+                </div>
+                <div class="menu-grid" id="menu-grid">
+                    <!-- Menu items will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Admin Section -->
+            <section class="admin-section" id="admin-section" style="display: none;">
+                <h2>Quản Lý Ca Làm Việc</h2>
+                <div class="admin-controls">
+                    <div class="shift-controls">
+                        <button class="btn btn-success" onclick="startNewShift()">Bắt đầu ca mới</button>
+                        <button class="btn btn-primary" onclick="viewCurrentShift()">Xem ca hiện tại</button>
+                        <button class="btn btn-danger" onclick="endShift()">Kết thúc ca</button>
+                    </div>
+                </div>
+                <div class="summary-cards">
+                    <div class="summary-card">
+                        <h3>Đơn hàng trong ca</h3>
+                        <p id="current-shift-orders">0</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Doanh thu trong ca</h3>
+                        <p id="current-shift-revenue">0₫</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Món bán chạy</h3>
+                        <p id="current-shift-bestseller">-</p>
+                    </div>
+                </div>
+                <div class="current-shift-history">
+                    <h3>Đơn hàng trong ca hiện tại</h3>
+                    <div id="current-shift-list">
+                        <!-- Current shift orders will be populated here -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>Danh sách hóa đơn</h3>
+                <button class="close-sidebar" onclick="toggleSidebar()" title="Ẩn/Hiện sidebar">
+                    <i class="fas fa-angle-right"></i>
+                </button>
+            </div>
+            <div class="invoice-list" id="invoice-list">
+                <!-- Invoice items will be populated here -->
+            </div>
+            <div class="sidebar-actions">
+                <button class="btn btn-success btn-full" onclick="createNewInvoice()">
+                    <i class="fas fa-plus"></i> Tạo hóa đơn mới
+                </button>
+                <div class="sidebar-controls" id="sidebar-controls" style="display: none;">
+                    <button class="btn btn-secondary btn-half" onclick="deselectInvoice()">
+                        <i class="fas fa-times"></i> Hủy chọn
+                    </button>
+                    <button class="btn btn-danger btn-half" onclick="deleteInvoiceById(currentInvoiceId)">
+                        <i class="fas fa-trash"></i> Xóa hóa đơn
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Order Creation Modal -->
+        <div class="modal" id="order-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="order-modal-title">Tạo hóa đơn mới</h3>
+                    <button class="close-modal" onclick="closeOrderModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="menu-instruction">
+                        <p><i class="fas fa-info-circle"></i> Chọn món từ menu bên dưới để thêm vào hóa đơn</p>
+                    </div>
+                    <div class="current-order">
+                        <h4>Thức uống đã chọn</h4>
+                        <div class="order-items" id="order-items">
+                            <!-- Order items will be populated here -->
+                        </div>
+                        <div class="order-total">
+                            <strong>Tổng cộng: <span id="order-total">0₫</span></strong>
+                        </div>
+                    </div>
+                    <div class="order-actions">
+                        <button class="btn btn-secondary" onclick="closeOrderModal()">Hủy</button>
+                        <button class="btn btn-danger" onclick="deleteInvoice()" id="delete-invoice-btn" style="display: none;">
+                            <i class="fas fa-trash"></i> Xóa hóa đơn
+                        </button>
+                        <button class="btn btn-primary" onclick="confirmOrder()" id="confirm-order-btn" disabled>
+                            <span id="order-action-text">Tạo hóa đơn</span>
+                        </button>
+                        <button class="btn btn-success" onclick="proceedToPayment()" id="payment-btn" style="display: none;">
+                            Thanh toán
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Modal -->
+        <div class="modal" id="payment-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="payment-modal-title">Thanh toán hóa đơn</h3>
+                    <button class="close-modal" onclick="closePaymentModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="payment-info">
+                        <h4>Chi tiết hóa đơn</h4>
+                        <div id="payment-order-summary"></div>
+                        <div class="total-payment">
+                            <strong>Tổng thanh toán: <span id="payment-total">0₫</span></strong>
+                        </div>
+                    </div>
+                    <div class="qr-section">
+                        <h4>Quét mã QR để thanh toán</h4>
+                        <div class="qr-code-container">
+                            <img src="qr_code.png" alt="QR Code thanh toán" id="qr-image" 
+                                 style="max-width: 200px; height: auto;">
+                            <div id="qr-fallback" style="display: none;">
+                                <canvas id="qr-code"></canvas>
+                            </div>
+                        </div>
+                        <p class="payment-instruction">
+                            Sử dụng ứng dụng ngân hàng để quét mã QR và thanh toán
+                        </p>
+                    </div>
+                    <div class="payment-actions" id="payment-actions">
+                        <!-- Payment buttons will be set by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Success Modal -->
+        <div class="modal" id="success-modal">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <i class="fas fa-check-circle success-icon"></i>
+                    <h3>Đặt hàng thành công!</h3>
+                    <p>Cảm ơn bạn đã đặt hàng. Đơn hàng của bạn đang được chuẩn bị.</p>
+                    <button class="btn btn-primary" onclick="closeSuccessModal()">
+                        Đóng
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- End Shift Modal -->
+        <div class="modal" id="end-shift-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Kết thúc ca làm việc</h3>
+                    <button class="close-modal" onclick="closeEndShiftModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="shift-summary">
+                        <h4>Tổng kết ca làm việc</h4>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <span class="label">Thời gian bắt đầu ca:</span>
+                                <span class="value" id="shift-start-time">-</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Thời gian kết thúc ca:</span>
+                                <span class="value" id="shift-end-time">-</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Tổng số đơn hàng:</span>
+                                <span class="value" id="shift-total-orders">0</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Tổng doanh thu:</span>
+                                <span class="value" id="shift-total-revenue">0₫</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Món bán chạy nhất:</span>
+                                <span class="value" id="shift-bestseller-item">-</span>
+                            </div>
+                        </div>
+                        <div class="shift-details">
+                            <h5>Chi tiết các đơn hàng:</h5>
+                            <div class="shift-orders-list" id="shift-orders-details">
+                                <!-- Shift orders will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="shift-actions">
+                        <button class="btn btn-secondary" onclick="closeEndShiftModal()">Hủy</button>
+                        <button class="btn btn-success" onclick="confirmEndShift()">
+                            <i class="fas fa-download"></i> Xác nhận và xuất báo cáo
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Test Overlay -->
+    <div class="test-overlay" id="test-overlay">
+        <h3>🧪 Test Monitor</h3>
+        <button onclick="toggleTestOverlay()">Hide/Show</button>
+        <button onclick="runAllTests()">Run Tests</button>
+        <button onclick="testElementsNow()">Check Elements</button>
+        <button onclick="testFunctions()">Check Functions</button>
+        <button onclick="clearTestLog()">Clear Log</button>
+        
+        <div id="element-status-test"></div>
+        <div id="function-status-test"></div>
+        <div class="log" id="test-log"></div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+    
+    <script>
+        // Test overlay functionality
+        let testLog = [];
+        let testOverlayVisible = true;
+
+        function logTest(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            testLog.push({ timestamp, message, type });
+            
+            const logDiv = document.getElementById('test-log');
+            if (logDiv) {
+                const entry = document.createElement('div');
+                entry.className = type;
+                entry.textContent = `[${timestamp}] ${message}`;
+                logDiv.appendChild(entry);
+                logDiv.scrollTop = logDiv.scrollHeight;
+                
+                // Keep only last 50 entries
+                if (logDiv.children.length > 50) {
+                    logDiv.removeChild(logDiv.firstChild);
+                }
+            }
+        }
+
+        function clearTestLog() {
+            testLog = [];
+            const logDiv = document.getElementById('test-log');
+            if (logDiv) logDiv.innerHTML = '';
+        }
+
+        function toggleTestOverlay() {
+            const overlay = document.getElementById('test-overlay');
+            if (overlay) {
+                testOverlayVisible = !testOverlayVisible;
+                overlay.style.display = testOverlayVisible ? 'block' : 'none';
+            }
+        }
+
+        function testElementsNow() {
+            logTest('Testing DOM elements...', 'info');
+            
+            const criticalElements = [
+                'menu-grid', 'invoice-list', 'order-items', 'sidebar',
+                'order-modal', 'payment-modal', 'admin-section', 'end-shift-modal'
+            ];
+
+            const statusDiv = document.getElementById('element-status-test');
+            if (statusDiv) {
+                statusDiv.innerHTML = '<h4>Elements:</h4>';
+                
+                criticalElements.forEach(id => {
+                    const element = document.getElementById(id);
+                    const status = document.createElement('div');
+                    status.className = 'status';
+                    
+                    if (element) {
+                        status.innerHTML = `<span class="found">✅ ${id}</span>`;
+                        logTest(`Element found: ${id}`, 'found');
+                    } else {
+                        status.innerHTML = `<span class="missing">❌ ${id}</span>`;
+                        logTest(`Element missing: ${id}`, 'missing');
+                    }
+                    statusDiv.appendChild(status);
+                });
+            }
+        }
+
+        function testFunctions() {
+            logTest('Testing JavaScript functions...', 'info');
+            
+            const criticalFunctions = [
+                'renderMenu', 'addToOrder', 'createNewInvoice', 'openOrderModal',
+                'confirmOrder', 'openPaymentModal', 'confirmPayment', 'updateOrderDisplay',
+                'filterMenu', 'toggleAdmin', 'showNotification'
+            ];
+
+            const statusDiv = document.getElementById('function-status-test');
+            if (statusDiv) {
+                statusDiv.innerHTML = '<h4>Functions:</h4>';
+                
+                criticalFunctions.forEach(funcName => {
+                    const status = document.createElement('div');
+                    status.className = 'status';
+                    
+                    if (typeof window[funcName] === 'function') {
+                        status.innerHTML = `<span class="found">✅ ${funcName}</span>`;
+                        logTest(`Function found: ${funcName}`, 'found');
+                    } else {
+                        status.innerHTML = `<span class="missing">❌ ${funcName}</span>`;
+                        logTest(`Function missing: ${funcName}`, 'missing');
+                    }
+                    statusDiv.appendChild(status);
+                });
+            }
+        }
+
+        function runAllTests() {
+            logTest('=== Running all tests ===', 'info');
+            testElementsNow();
+            setTimeout(testFunctions, 100);
+            
+            // Test menu data
+            setTimeout(() => {
+                if (window.menuData && Array.isArray(window.menuData)) {
+                    logTest(`Menu data loaded: ${window.menuData.length} items`, 'found');
+                } else {
+                    logTest('Menu data missing or invalid', 'missing');
+                }
+                
+                // Test global variables
+                const globals = ['currentOrder', 'invoices', 'currentInvoiceId'];
+                globals.forEach(varName => {
+                    if (typeof window[varName] !== 'undefined') {
+                        logTest(`Global ${varName}: ${JSON.stringify(window[varName])}`, 'found');
+                    } else {
+                        logTest(`Global missing: ${varName}`, 'missing');
+                    }
+                });
+            }, 200);
+        }
+
+        // Auto-run tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            logTest('DOM Content Loaded', 'info');
+            setTimeout(runAllTests, 1000);
+            
+            // Set up periodic testing
+            setInterval(testElementsNow, 5000);
+        });
+
+        // Monitor for script errors
+        window.addEventListener('error', (event) => {
+            logTest(`JS Error: ${event.message} at ${event.filename}:${event.lineno}`, 'missing');
+        });
+    </script>
+</body>
+</html>

@@ -205,3 +205,7 @@ const qrPaymentInfo = {
     accountHolder: "BALANCOFFEE",
     content: "Thanh toan don hang"
 };
+
+// Expose globals to window for diagnostic detection
+window.menuData = menuData;
+window.qrPaymentInfo = qrPaymentInfo;

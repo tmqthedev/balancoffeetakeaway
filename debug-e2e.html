@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E2E Test Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .iframe-container {
+            position: relative;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .app-iframe {
+            width: 100%;
+            height: 500px;
+            border: none;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-danger { background: #dc3545; }
+        .logs {
+            background: #1e1e1e;
+            color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            margin-top: 10px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        .log-info { color: #17a2b8; }
+        .log-success { color: #28a745; }
+        .log-warning { color: #ffc107; }
+        .log-error { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 E2E Test Debug</h1>
+        
+        <div class="test-section">
+            <h3>App Test Instance</h3>
+            <div class="iframe-container">
+                <iframe src="index.html" class="app-iframe" id="app-iframe" title="BalanCoffee Debug"></iframe>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Debug Controls</h3>
+            <button class="btn" onclick="debugAppLoad()">🔄 Check App Load</button>
+            <button class="btn btn-success" onclick="debugModalOpen()">📋 Test Modal Open</button>
+            <button class="btn btn-warning" onclick="debugPaymentFlow()">💳 Test Payment</button>
+            <button class="btn btn-danger" onclick="debugDOM()">🔍 Debug DOM</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Debug Logs</h3>
+            <div class="logs" id="debug-logs"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logsContainer = document.getElementById('debug-logs');
+            
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-entry log-${type}`;
+            logDiv.textContent = `[${timestamp}] ${message}`;
+            
+            logsContainer.appendChild(logDiv);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function getIframeDoc() {
+            const iframe = document.getElementById('app-iframe');
+            return iframe.contentDocument || iframe.contentWindow.document;
+        }
+
+        function getIframeWindow() {
+            const iframe = document.getElementById('app-iframe');
+            return iframe.contentWindow;
+        }
+
+        function wait(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function debugAppLoad() {
+            log('🔄 Starting app load debug...', 'info');
+            
+            const iframe = document.getElementById('app-iframe');
+            const doc = getIframeDoc();
+            const win = getIframeWindow();
+            
+            // Check iframe src
+            log(`Iframe src: ${iframe.src}`, 'info');
+            
+            // Check document ready state
+            log(`Document ready state: ${doc.readyState}`, 'info');
+            
+            // Check if scripts are loaded
+            const scripts = doc.querySelectorAll('script');
+            log(`Scripts found: ${scripts.length}`, 'info');
+            
+            // Check for main elements
+            const elements = [
+                { name: 'header', selector: '.header' },
+                { name: 'menu-grid', selector: '#menu-grid' },
+                { name: 'sidebar', selector: '.sidebar' },
+                { name: 'admin button', selector: 'button[onclick="toggleAdmin()"]' }
+            ];
+            
+            elements.forEach(({ name, selector }) => {
+                const element = doc.querySelector(selector);
+                log(`${name}: ${element ? '✅ Found' : '❌ Missing'}`, element ? 'success' : 'error');
+            });
+            
+            // Check for global functions
+            const functions = [
+                'createNewInvoice', 'openOrderModal', 'confirmPayment', 'toggleAdmin'
+            ];
+            
+            functions.forEach(funcName => {
+                const exists = typeof win[funcName] === 'function';
+                log(`Function ${funcName}: ${exists ? '✅ Exists' : '❌ Missing'}`, exists ? 'success' : 'error');
+            });
+            
+            // Check for errors
+            if (win.console && win.console.error) {
+                log('Checking for console errors...', 'info');
+            }
+        }
+
+        async function debugModalOpen() {
+            log('📋 Testing modal open...', 'info');
+            
+            const win = getIframeWindow();
+            const doc = getIframeDoc();
+            
+            try {
+                // Try to create new invoice (should open order modal)
+                if (typeof win.createNewInvoice === 'function') {
+                    log('Calling createNewInvoice()...', 'info');
+                    win.createNewInvoice();
+                    
+                    // Wait and check for modal
+                    await wait(1000);
+                    
+                    const modal = doc.getElementById('order-modal');
+                    if (modal) {
+                        log(`Modal display: ${modal.style.display}`, 'info');
+                        log(`Modal has show class: ${modal.classList.contains('show')}`, 'info');
+                        log(`Modal computed display: ${win.getComputedStyle(modal).display}`, 'info');
+                    } else {
+                        log('Order modal not found!', 'error');
+                    }
+                } else {
+                    log('createNewInvoice function not found!', 'error');
+                }
+            } catch (error) {
+                log(`Error testing modal: ${error.message}`, 'error');
+            }
+        }
+
+        async function debugPaymentFlow() {
+            log('💳 Testing payment flow...', 'info');
+            
+            const win = getIframeWindow();
+            const doc = getIframeDoc();
+            
+            try {
+                // Check if there are any invoices
+                if (win.invoices && win.invoices.length > 0) {
+                    const invoice = win.invoices[0];
+                    log(`Testing with invoice: ${invoice.id}`, 'info');
+                    
+                    if (typeof win.openPaymentModal === 'function') {
+                        log('Calling openPaymentModal()...', 'info');
+                        win.openPaymentModal(invoice);
+                        
+                        // Wait and check for payment modal
+                        await wait(1000);
+                        
+                        const paymentModal = doc.getElementById('payment-modal');
+                        if (paymentModal) {
+                            log(`Payment modal display: ${paymentModal.style.display}`, 'info');
+                            log(`Payment modal has show class: ${paymentModal.classList.contains('show')}`, 'info');
+                            
+                            // Check for payment buttons
+                            const confirmBtn = doc.querySelector('button[onclick="confirmPayment()"]');
+                            log(`Confirm payment button: ${confirmBtn ? '✅ Found' : '❌ Missing'}`, confirmBtn ? 'success' : 'error');
+                        } else {
+                            log('Payment modal not found!', 'error');
+                        }
+                    } else {
+                        log('openPaymentModal function not found!', 'error');
+                    }
+                } else {
+                    log('No invoices found - creating one first...', 'warning');
+                    if (typeof win.createNewInvoice === 'function') {
+                        win.createNewInvoice();
+                    }
+                }
+            } catch (error) {
+                log(`Error testing payment flow: ${error.message}`, 'error');
+            }
+        }
+
+        async function debugDOM() {
+            log('🔍 Running DOM debug...', 'info');
+            
+            const win = getIframeWindow();
+            
+            try {
+                if (typeof win.debugDOMStructure === 'function') {
+                    log('Calling debugDOMStructure()...', 'info');
+                    win.debugDOMStructure();
+                    log('Check browser console for detailed DOM debug output', 'info');
+                } else {
+                    log('debugDOMStructure function not found!', 'error');
+                }
+            } catch (error) {
+                log(`Error running DOM debug: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run initial debug when page loads
+        window.addEventListener('load', async () => {
+            await wait(2000); // Wait for iframe to load
+            log('🚀 Starting automatic debug...', 'info');
+            await debugAppLoad();
+        });
+    </script>
+</body>
+</html>

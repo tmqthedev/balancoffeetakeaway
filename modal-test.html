@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-warning { background: #ffc107; color: black; }
+        .logs {
+            background: #1e1e1e;
+            color: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            margin-top: 10px;
+        }
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        .log-info { color: #17a2b8; }
+        .log-success { color: #28a745; }
+        .log-error { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 Modal Behavior Test</h1>
+        
+        <div class="test-section">
+            <h3>Modal Tests</h3>
+            <button class="btn" onclick="testCreateNewInvoice()">📋 Test Create Invoice</button>
+            <button class="btn btn-success" onclick="testPaymentModal()">💳 Test Payment Modal</button>
+            <button class="btn btn-warning" onclick="testSuccessModal()">🎉 Test Success Modal</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Modal State Inspector</h3>
+            <button class="btn" onclick="inspectModals()">🔍 Inspect All Modals</button>
+            <button class="btn" onclick="clearLogs()">🗑️ Clear Logs</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Test Logs</h3>
+            <div class="logs" id="test-logs"></div>
+        </div>
+    </div>
+
+    <!-- Include the main app scripts for testing -->
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+
+    <script>
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logsContainer = document.getElementById('test-logs');
+            
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-entry log-${type}`;
+            logDiv.textContent = `[${timestamp}] ${message}`;
+            
+            logsContainer.appendChild(logDiv);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+            
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLogs() {
+            document.getElementById('test-logs').innerHTML = '';
+        }
+
+        async function testCreateNewInvoice() {
+            log('🧪 Testing createNewInvoice()...', 'info');
+            
+            try {
+                if (typeof createNewInvoice === 'function') {
+                    createNewInvoice();
+                    
+                    // Check modal state after creation
+                    setTimeout(() => {
+                        inspectModal('order-modal');
+                    }, 100);
+                    
+                    setTimeout(() => {
+                        inspectModal('order-modal');
+                    }, 500);
+                    
+                    setTimeout(() => {
+                        inspectModal('order-modal');
+                    }, 1000);
+                    
+                } else {
+                    log('❌ createNewInvoice function not found', 'error');
+                }
+            } catch (error) {
+                log(`❌ Error testing createNewInvoice: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPaymentModal() {
+            log('🧪 Testing payment modal...', 'info');
+            
+            try {
+                // Create a test invoice if needed
+                if (!window.invoices || window.invoices.length === 0) {
+                    log('Creating test invoice first...', 'info');
+                    createNewInvoice();
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                if (window.invoices && window.invoices.length > 0) {
+                    const testInvoice = window.invoices[0];
+                    log(`Using test invoice: ${testInvoice.id}`, 'info');
+                    
+                    if (typeof openPaymentModal === 'function') {
+                        openPaymentModal(testInvoice);
+                        
+                        // Check modal state after opening
+                        setTimeout(() => {
+                            inspectModal('payment-modal');
+                        }, 100);
+                        
+                        setTimeout(() => {
+                            inspectModal('payment-modal');
+                        }, 500);
+                        
+                        setTimeout(() => {
+                            inspectModal('payment-modal');
+                        }, 1000);
+                    } else {
+                        log('❌ openPaymentModal function not found', 'error');
+                    }
+                } else {
+                    log('❌ No invoices available for testing', 'error');
+                }
+            } catch (error) {
+                log(`❌ Error testing payment modal: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSuccessModal() {
+            log('🧪 Testing success modal...', 'info');
+            
+            try {
+                if (typeof showSuccessModal === 'function') {
+                    const testInvoice = {
+                        id: 'TEST001',
+                        total: 50000,
+                        paidAt: new Date().toISOString()
+                    };
+                    
+                    showSuccessModal(testInvoice);
+                    
+                    // Check modal state after opening
+                    setTimeout(() => {
+                        inspectModal('success-modal');
+                    }, 100);
+                    
+                    setTimeout(() => {
+                        inspectModal('success-modal');
+                    }, 500);
+                    
+                    setTimeout(() => {
+                        inspectModal('success-modal');
+                    }, 1000);
+                } else {
+                    log('❌ showSuccessModal function not found', 'error');
+                }
+            } catch (error) {
+                log(`❌ Error testing success modal: ${error.message}`, 'error');
+            }
+        }
+
+        function inspectModal(modalId) {
+            log(`🔍 Inspecting modal: ${modalId}`, 'info');
+            
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                const display = modal.style.display;
+                const hasShowClass = modal.classList.contains('show');
+                const computedDisplay = getComputedStyle(modal).display;
+                const visibility = getComputedStyle(modal).visibility;
+                const opacity = getComputedStyle(modal).opacity;
+                
+                log(`  - style.display: "${display}"`, 'info');
+                log(`  - has 'show' class: ${hasShowClass}`, 'info');
+                log(`  - computed display: "${computedDisplay}"`, 'info');
+                log(`  - computed visibility: "${visibility}"`, 'info');
+                log(`  - computed opacity: "${opacity}"`, 'info');
+                
+                // Check if modal would be detected by E2E test
+                const wouldBeDetected = (display !== 'none' && 
+                    (hasShowClass || display === 'flex' || display === 'block'));
+                
+                log(`  - E2E would detect: ${wouldBeDetected ? '✅ YES' : '❌ NO'}`, wouldBeDetected ? 'success' : 'error');
+            } else {
+                log(`❌ Modal ${modalId} not found in DOM`, 'error');
+            }
+        }
+
+        function inspectModals() {
+            log('🔍 Inspecting all modals...', 'info');
+            
+            const modalIds = ['order-modal', 'payment-modal', 'success-modal', 'end-shift-modal'];
+            
+            modalIds.forEach(modalId => {
+                inspectModal(modalId);
+            });
+        }
+
+        // Auto-run when page loads
+        window.addEventListener('load', () => {
+            log('🚀 Modal test page loaded', 'info');
+            log('Available functions:', 'info');
+            
+            const testFunctions = [
+                'createNewInvoice', 'openOrderModal', 'openPaymentModal', 
+                'confirmPayment', 'showSuccessModal', 'closeSuccessModal'
+            ];
+            
+            testFunctions.forEach(funcName => {
+                const exists = typeof window[funcName] === 'function';
+                log(`  - ${funcName}: ${exists ? '✅' : '❌'}`, exists ? 'success' : 'error');
+            });
+        });
+    </script>
+</body>
+</html>

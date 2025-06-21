@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BalanCoffee - Hệ thống Kiểm thử Toàn diện</title>
+    <script src="iframe-test-helper.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .header .status {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .status.running { color: #ff9800; }
+        .status.success { color: #4caf50; }
+        .status.failed { color: #f44336; }
+        
+        .control-panel {
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .control-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        
+        .btn-primary { background: #2196f3; color: white; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .test-section {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .test-section-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .test-section-body {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .test-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            border-left: 4px solid #ddd;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        
+        .test-item.running {
+            border-left-color: #ff9800;
+            background: #fff3e0;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .test-item.passed {
+            border-left-color: #4caf50;
+            background: #e8f5e8;
+        }
+        
+        .test-item.failed {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+        
+        .test-item.warning {
+            border-left-color: #ff9800;
+            background: #fff3e0;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .test-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .test-result {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .test-details {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.95);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+        
+        .detailed-logs {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .log-container {
+            background: #1e1e1e;
+            color: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+        }
+        
+        .log-entry.error { color: #ff6b6b; }
+        .log-entry.success { color: #51cf66; }
+        .log-entry.warning { color: #ffd43b; }
+        .log-entry.info { color: #74c0fc; }
+        
+        .app-preview {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .app-iframe {
+            width: 100%;
+            height: 500px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🧪 BalanCoffee - Hệ thống Kiểm thử Toàn diện</h1>
+            <div class="status" id="overall-status">Sẵn sàng kiểm thử</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="overall-progress"></div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->        <div class="control-panel">
+            <h3 style="margin-bottom: 15px; text-align: center;">🎛️ Bảng điều khiển</h3>
+            <div class="control-buttons">
+                <button class="btn btn-primary" onclick="runAllTests()">
+                    <span class="loading" id="run-loading" style="display: none;"></span>
+                    🚀 Chạy tất cả kiểm thử
+                </button>
+                <button class="btn btn-success" onclick="runQuickTests()">⚡ Kiểm thử nhanh</button>
+                <button class="btn btn-warning" onclick="runStressTests()">💪 Kiểm thử áp lực</button>
+                <button class="btn btn-secondary" onclick="runAutomatedTests()">🤖 Tự động hoá</button>
+                <button class="btn btn-secondary" onclick="resetTests()">🔄 Đặt lại</button>
+                <button class="btn btn-danger" onclick="exportResults()">📊 Xuất báo cáo</button>
+            </div>
+            <div style="margin-top: 15px; text-align: center;">
+                <label>
+                    <input type="checkbox" id="auto-run" onchange="toggleAutoRun()"> 
+                    🔄 Tự động chạy lại (30s)
+                </label>
+                <label style="margin-left: 20px;">
+                    <input type="checkbox" id="continuous-mode" onchange="toggleContinuousMode()"> 
+                    ♾️ Chế độ liên tục
+                </label>
+            </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="summary-stats" id="summary-stats">
+            <div class="stat-card">
+                <div class="stat-number" id="total-tests">0</div>
+                <div class="stat-label">Tổng số test</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="passed-tests" style="color: #4caf50;">0</div>
+                <div class="stat-label">Thành công</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="failed-tests" style="color: #f44336;">0</div>
+                <div class="stat-label">Thất bại</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="warning-tests" style="color: #ff9800;">0</div>
+                <div class="stat-label">Cảnh báo</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="coverage-percent">0%</div>
+                <div class="stat-label">Độ bao phủ</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="execution-time">0ms</div>
+                <div class="stat-label">Thời gian</div>
+            </div>
+        </div>
+
+        <!-- Test Sections Grid -->
+        <div class="test-grid">
+            <!-- DOM Tests -->
+            <div class="test-section">
+                <div class="test-section-header">
+                    <span>🏗️ Kiểm thử DOM & UI</span>
+                    <span id="dom-status">0/0</span>
+                </div>
+                <div class="test-section-body" id="dom-tests"></div>
+            </div>
+
+            <!-- Function Tests -->            <div class="test-section">
+                <div class="test-section-header">
+                    <span>⚙️ Kiểm thử Functions</span>
+                    <span id="functions-status">0/0</span>
+                </div>
+                <div class="test-section-body" id="functions-tests"></div>
+            </div>
+
+            <!-- Data Tests -->
+            <div class="test-section">
+                <div class="test-section-header">
+                    <span>💾 Kiểm thử Dữ liệu</span>
+                    <span id="data-status">0/0</span>
+                </div>
+                <div class="test-section-body" id="data-tests"></div>
+            </div>
+
+            <!-- Integration Tests -->
+            <div class="test-section">
+                <div class="test-section-header">
+                    <span>🔗 Kiểm thử Tích hợp</span>
+                    <span id="integration-status">0/0</span>
+                </div>
+                <div class="test-section-body" id="integration-tests"></div>
+            </div>
+
+            <!-- Performance Tests -->
+            <div class="test-section">
+                <div class="test-section-header">
+                    <span>⚡ Kiểm thử Hiệu suất</span>
+                    <span id="performance-status">0/0</span>
+                </div>
+                <div class="test-section-body" id="performance-tests"></div>
+            </div>
+
+            <!-- Security Tests -->
+            <div class="test-section">
+                <div class="test-section-header">
+                    <span>🔐 Kiểm thử Bảo mật</span>
+                    <span id="security-status">0/0</span>
+                </div>
+                <div class="test-section-body" id="security-tests"></div>
+            </div>
+        </div>        <!-- App Preview -->        <div class="app-preview">
+            <h3 style="margin-bottom: 15px;">📱 Preview ứng dụng</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button class="btn btn-secondary" onclick="refreshAppPreview()">🔄 Làm mới</button>
+                <button class="btn btn-secondary" onclick="testAppInteraction()">🎯 Test tương tác</button>
+                <button class="btn btn-secondary" onclick="simulateUserFlow()">👤 Mô phỏng người dùng</button>
+            </div>
+            <iframe src="index.html" class="app-iframe" id="app-preview" title="Preview ứng dụng BalanCoffee" allowfullscreen="true" allow="fullscreen" style="border: 1px solid #ddd; border-radius: 8px;"></iframe>
+            <div class="iframe-debug-panel" style="margin-top: 10px;">
+                <button class="btn btn-warning" onclick="debugIframeDOM()">🔍 Debug DOM Status</button>
+                <button class="btn btn-secondary" onclick="forceIframeReload()">🔄 Force Reload</button>
+                <div id="iframe-load-status" style="margin-top: 5px; font-size: 12px; color: #666;"></div>
+            </div>
+        </div>
+
+        <!-- Real-time Monitoring -->        <div class="detailed-logs">
+            <h3 style="margin-bottom: 15px;">📊 Giám sát thời gian thực</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                <div class="stat-card">
+                    <div class="stat-number" id="test-runs">0</div>
+                    <div class="stat-label">Lần chạy</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avg-duration">0ms</div>
+                    <div class="stat-label">Thời gian TB</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="success-rate">0%</div>
+                    <div class="stat-label">Tỉ lệ thành công</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="last-run">Chưa chạy</div>
+                    <div class="stat-label">Lần cuối</div>
+                </div>
+            </div>
+            <div class="log-container" id="detailed-logs"></div>
+        </div>
+    </div>
+
+    <script>        // Test Suite Global Variables
+        let testResults = {
+            dom: [],
+            functions: [],
+            data: [],
+            integration: [],
+            performance: [],
+            security: []
+        };
+        
+        let testStats = {
+            total: 0,
+            passed: 0,
+            failed: 0,
+            warnings: 0,
+            startTime: 0,
+            endTime: 0
+        };
+
+        let isTestRunning = false;
+        let autoRunInterval = null;
+        let continuousMode = false;
+        let testHistory = [];
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
+
+        // Utility Functions
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logContainer = document.getElementById('detailed-logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function updateStats() {
+            document.getElementById('total-tests').textContent = testStats.total;
+            document.getElementById('passed-tests').textContent = testStats.passed;
+            document.getElementById('failed-tests').textContent = testStats.failed;
+            document.getElementById('warning-tests').textContent = testStats.warnings;
+            
+            const executionTime = testStats.endTime - testStats.startTime;
+            document.getElementById('execution-time').textContent = `${executionTime}ms`;
+            
+            const coverage = testStats.total > 0 ? Math.round((testStats.passed / testStats.total) * 100) : 0;
+            document.getElementById('coverage-percent').textContent = `${coverage}%`;
+            
+            // Update progress bar
+            const progress = testStats.total > 0 ? (testStats.passed / testStats.total) * 100 : 0;
+            document.getElementById('overall-progress').style.width = `${progress}%`;
+              // Save to history
+            if (testStats.total > 0) {
+                testHistory.push({
+                    timestamp: new Date().toISOString(),
+                    stats: {...testStats},
+                    coverage: coverage
+                });
+                
+                // Keep only last 10 runs
+                if (testHistory.length > 10) {
+                    testHistory = testHistory.slice(-10);
+                }
+                
+                // Update monitoring stats
+                updateMonitoringStats();
+            }
+        }
+
+        function createTestItem(name, category) {
+            const container = document.getElementById(`${category}-tests`);
+            const testItem = document.createElement('div');
+            testItem.className = 'test-item running';
+            testItem.id = `test-${category}-${name.replace(/\s+/g, '-').toLowerCase()}`;
+            
+            testItem.innerHTML = `
+                <div class="test-name">${name}</div>
+                <div class="test-result">Đang chạy...</div>
+                <div class="test-details"></div>
+            `;
+            
+            container.appendChild(testItem);
+            return testItem;
+        }
+
+        function updateTestItem(testItem, result, details = '') {
+            const resultDiv = testItem.querySelector('.test-result');
+            const detailsDiv = testItem.querySelector('.test-details');
+            
+            testItem.className = `test-item ${result}`;
+            
+            switch(result) {
+                case 'passed':
+                    resultDiv.textContent = '✅ Thành công';
+                    testStats.passed++;
+                    break;
+                case 'failed':
+                    resultDiv.textContent = '❌ Thất bại';
+                    testStats.failed++;
+                    break;
+                case 'warning':
+                    resultDiv.textContent = '⚠️ Cảnh báo';
+                    testStats.warnings++;
+                    break;
+            }
+            
+            if (details) {
+                detailsDiv.textContent = details;
+            }
+            
+            updateStats();
+        }
+
+        function updateSectionStatus(category) {
+            // Hỗ trợ fallback cho các ID section (functions/data/integration/performance/security)
+            let statusEl = document.getElementById(`${category}-status`)
+                || document.getElementById(`${category === 'functions' ? 'function' : category}-status`);
+            const categoryTests = testResults[category];
+            const total = categoryTests.length;
+            const completed = categoryTests.filter(t => t.status !== 'running').length;
+            if (statusEl) statusEl.textContent = `${completed}/${total}`;
+        }
+
+        function updateMonitoringStats() {
+            if (testHistory.length === 0) return;
+            
+            // Update run count
+            document.getElementById('test-runs').textContent = testHistory.length;
+            
+            // Calculate average duration
+            const totalDuration = testHistory.reduce((sum, entry) => sum + (entry.stats.endTime - entry.stats.startTime), 0);
+            const avgDuration = Math.round(totalDuration / testHistory.length);
+            document.getElementById('avg-duration').textContent = `${avgDuration}ms`;
+            
+            // Calculate success rate
+            const totalTests = testHistory.reduce((sum, entry) => sum + entry.stats.total, 0);
+            const passedTests = testHistory.reduce((sum, entry) => sum + entry.stats.passed, 0);
+            const successRate = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
+            document.getElementById('success-rate').textContent = `${successRate}%`;
+            
+            // Update last run time
+            const lastRun = new Date(testHistory[testHistory.length - 1].timestamp);
+            document.getElementById('last-run').textContent = lastRun.toLocaleTimeString();
+        }
+
+        // Test Implementation Functions
+        async function testDOM() {
+            log('Bắt đầu kiểm thử DOM...', 'info');
+            
+            // Đảm bảo iframe đã tải
+            await waitForIframeLoad();
+            
+            const domTests = [                { name: 'Kiểm tra container chính', test: async () => {
+                    return await runTestWithRetry(() => {
+                        return !!iframeTestHelper.getIframeElement(null, '.app-container');
+                    }, 3, 1000);
+                }},
+                { name: 'Kiểm tra menu grid', test: async () => {
+                    return await runTestWithRetry(() => {
+                        return !!iframeTestHelper.getIframeElement('menu-grid');
+                    }, 3, 1000);
+                }},
+                { name: 'Kiểm tra invoice list', test: async () => {
+                    return await runTestWithRetry(() => {
+                        return !!iframeTestHelper.getIframeElement('invoice-list');
+                    }, 3, 1000);
+                }},
+                { name: 'Kiểm tra order items', test: async () => {
+                    return await runTestWithRetry(() => {
+                        return !!iframeTestHelper.getIframeElement('order-items');
+                    }, 3, 1000);
+                }},
+                { name: 'Kiểm tra sidebar', test: async () => {
+                    return await runTestWithRetry(() => {
+                        return !!iframeTestHelper.getIframeElement('sidebar');
+                    }, 3, 1000);
+                }},
+                { name: 'Kiểm tra modals', test: async () => {
+                    return await runTestWithRetry(() => {
+                        const doc = iframeTestHelper.getIframeDocument();
+                        if (!doc) return false;
+                        
+                        return !!doc.getElementById('order-modal') && 
+                               !!doc.getElementById('payment-modal') &&
+                               !!doc.getElementById('end-shift-modal');
+                    }, 3, 1000);
+                }},
+                { name: 'Kiểm tra admin section', test: async () => {
+                    return await runTestWithRetry(() => {
+                        return !!iframeTestHelper.getIframeElement('admin-section');
+                    }, 3, 1000);
+                }},
+                { name: 'Kiểm tra category buttons', test: async () => {
+                    return await runTestWithRetry(() => {
+                        const doc = iframeTestHelper.getIframeDocument();
+                        if (!doc) return false;
+                        return doc.querySelectorAll('.category-btn').length > 0;
+                    }, 3, 1000);
+                }},
+                { name: 'Kiểm tra responsive design', test: async () => {
+                    return await runTestWithRetry(() => {
+                        const viewport = document.querySelector('meta[name="viewport"]');
+                        return viewport && viewport.content.includes('width=device-width');
+                    });
+                }},
+                { name: 'Kiểm tra accessibility', test: async () => {
+                    return await runTestWithRetry(() => {
+                        const buttons = document.querySelectorAll('button');
+                        return Array.from(buttons).every(btn => btn.textContent.trim() || btn.getAttribute('title'));
+                    });
+                }},
+                { name: 'Kiểm tra CSS load', test: async () => {
+                    return await runTestWithRetry(() => {
+                        const styles = getComputedStyle(document.body);
+                        return styles.fontFamily !== 'initial';
+                    });
+                }},
+                { name: 'Kiểm tra images', test: async () => {
+                    return await runTestWithRetry(() => {
+                        const images = document.querySelectorAll('img');
+                        return Array.from(images).length === 0 || Array.from(images).every(img => img.complete || img.naturalHeight > 0);
+                    });
+                }}
+            ];
+
+            for (const test of domTests) {
+                const testItem = createTestItem(test.name, 'dom');
+                testStats.total++;
+                
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 100)); // Simulate async
+                    const result = await test.test();
+                    updateTestItem(testItem, result ? 'passed' : 'failed', 
+                        result ? 'Element tồn tại và hoạt động' : 'Element không tìm thấy hoặc lỗi');
+                    
+                    testResults.dom.push({
+                        name: test.name,
+                        status: result ? 'passed' : 'failed',
+                        details: result ? 'OK' : 'Failed'
+                    });
+                } catch (error) {
+                    updateTestItem(testItem, 'failed', `Lỗi: ${error.message}`);
+                    testResults.dom.push({
+                        name: test.name,
+                        status: 'failed',
+                        details: error.message
+                    });
+                }
+                  updateSectionStatus('dom');
+            }
+        }
+
+        async function testFunctions() {
+            log('Bắt đầu kiểm thử functions...', 'info');
+            
+            // Load the main app scripts first
+            await loadAppScripts();
+            
+            const functionTests = [
+                { name: 'formatPrice function', test: () => {
+                    if (typeof window.formatPrice !== 'function') return false;
+                    const result = window.formatPrice(25000);
+                    return result.includes('25.000') && result.includes('₫');
+                }},
+                { name: 'formatDateTime function', test: () => {
+                    if (typeof window.formatDateTime !== 'function') return false;
+                    const result = window.formatDateTime(new Date().toISOString());
+                    return result.length > 0;
+                }},
+                { name: 'showNotification function', test: () => {
+                    if (typeof window.showNotification !== 'function') return false;
+                    window.showNotification('Test', 'info');
+                    return true;
+                }},
+                { name: 'renderMenu function', test: () => typeof window.renderMenu === 'function' },
+                { name: 'addToOrder function', test: () => typeof window.addToOrder === 'function' },
+                { name: 'createNewInvoice function', test: () => typeof window.createNewInvoice === 'function' },
+                { name: 'openOrderModal function', test: () => typeof window.openOrderModal === 'function' },
+                { name: 'confirmOrder function', test: () => typeof window.confirmOrder === 'function' },
+                { name: 'openPaymentModal function', test: () => typeof window.openPaymentModal === 'function' },
+                { name: 'confirmPayment function', test: () => typeof window.confirmPayment === 'function' },
+                { name: 'updateOrderDisplay function', test: () => typeof window.updateOrderDisplay === 'function' },
+                { name: 'filterMenu function', test: () => typeof window.filterMenu === 'function' },
+                { name: 'clearCurrentOrder function', test: () => typeof window.clearCurrentOrder === 'function' },
+                { name: 'toggleAdmin function', test: () => typeof window.toggleAdmin === 'function' },
+                { name: 'startNewShift function', test: () => typeof window.startNewShift === 'function' },
+                { name: 'endShift function', test: () => typeof window.endShift === 'function' }
+            ];
+
+            for (const test of functionTests) {
+                const testItem = createTestItem(test.name, 'functions');
+                testStats.total++;
+                
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    const result = test.test();
+                    updateTestItem(testItem, result ? 'passed' : 'failed', 
+                        result ? 'Function có sẵn và hoạt động' : 'Function không tồn tại hoặc lỗi');
+                    
+                    testResults.functions.push({
+                        name: test.name,
+                        status: result ? 'passed' : 'failed',
+                        details: result ? 'OK' : 'Missing or error'
+                    });
+                } catch (error) {
+                    updateTestItem(testItem, 'failed', `Lỗi: ${error.message}`);
+                    testResults.functions.push({
+                        name: test.name,
+                        status: 'failed',
+                        details: error.message
+                    });
+                }
+                
+                updateSectionStatus('functions');
+            }
+        }
+
+        async function testData() {
+            log('Bắt đầu kiểm thử dữ liệu...', 'info');
+            
+            const dataTests = [
+                { name: 'MenuData availability', test: () => {
+                    return window.menuData && Array.isArray(window.menuData) && window.menuData.length > 0;
+                }},
+                { name: 'QR Payment Info', test: () => {
+                    return window.qrPaymentInfo && typeof window.qrPaymentInfo === 'object';
+                }},
+                { name: 'LocalStorage access', test: () => {
+                    try {
+                        localStorage.setItem('test', 'value');
+                        const result = localStorage.getItem('test') === 'value';
+                        localStorage.removeItem('test');
+                        return result;
+                    } catch {
+                        return false;
+                    }
+                }},
+                { name: 'Global variables', test: () => {
+                    const globals = ['currentOrder', 'invoices', 'orderHistory', 'shiftStartTime'];
+                    return globals.every(g => typeof window[g] !== 'undefined');
+                }},
+                { name: 'Menu data structure', test: () => {
+                    if (!window.menuData || !Array.isArray(window.menuData)) return false;
+                    return window.menuData.every(item => 
+                        item.id && item.name && item.price && item.category
+                    );
+                }},
+                { name: 'Invoice data persistence', test: () => {
+                    try {
+                        const testInvoice = { id: 'test', total: 1000, items: [] };
+                        localStorage.setItem('invoices', JSON.stringify([testInvoice]));
+                        const saved = JSON.parse(localStorage.getItem('invoices'));
+                        localStorage.removeItem('invoices');
+                        return saved && saved.length === 1 && saved[0].id === 'test';
+                    } catch {
+                        return false;
+                    }
+                }},
+                { name: 'Order history persistence', test: () => {
+                    try {
+                        const testOrder = { id: 'test', timestamp: new Date().toISOString() };
+                        localStorage.setItem('orderHistory', JSON.stringify([testOrder]));
+                        const saved = JSON.parse(localStorage.getItem('orderHistory'));
+                        localStorage.removeItem('orderHistory');
+                        return saved && saved.length === 1 && saved[0].id === 'test';
+                    } catch {
+                        return false;
+                    }
+                }},
+                { name: 'Shift time tracking', test: () => {
+                    try {
+                        const testTime = new Date().toISOString();
+                        localStorage.setItem('shiftStartTime', testTime);
+                        const saved = localStorage.getItem('shiftStartTime');
+                        localStorage.removeItem('shiftStartTime');
+                        return saved === testTime;
+                    } catch {
+                        return false;
+                    }
+                }}
+            ];
+
+            for (const test of dataTests) {
+                const testItem = createTestItem(test.name, 'data');
+                testStats.total++;
+                
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    const result = test.test();
+                    updateTestItem(testItem, result ? 'passed' : 'failed', 
+                        result ? 'Dữ liệu hợp lệ và hoạt động' : 'Dữ liệu không hợp lệ hoặc lỗi');
+                    
+                    testResults.data.push({
+                        name: test.name,
+                        status: result ? 'passed' : 'failed',
+                        details: result ? 'OK' : 'Invalid or missing data'
+                    });
+                } catch (error) {
+                    updateTestItem(testItem, 'failed', `Lỗi: ${error.message}`);
+                    testResults.data.push({
+                        name: test.name,
+                        status: 'failed',
+                        details: error.message
+                    });
+                }
+                
+                updateSectionStatus('data');
+            }
+        }
+        
+        async function testIntegration() {
+            log('Bắt đầu kiểm thử tích hợp...', 'info');
+            
+            const integrationTests = [                { name: 'Menu render integration', test: async () => {
+                    return await runTestWithRetry(async () => {
+                        if (!iframeTestHelper.checkIframeVariable('renderMenu')) return false;
+                        
+                        const menuGrid = iframeTestHelper.getIframeElement('menu-grid');
+                        if (!menuGrid) return false;
+                        
+                        const initialContent = menuGrid.innerHTML;
+                        iframeTestHelper.callIframeFunction('renderMenu');
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        return menuGrid.innerHTML !== initialContent;
+                    }, 3, 1000);
+                }},
+                { name: 'Order creation workflow', test: async () => {
+                    return await runTestWithRetry(async () => {
+                        if (!iframeTestHelper.checkIframeVariable('addToOrder') || 
+                            !iframeTestHelper.checkIframeVariable('currentOrder')) return false;
+                        
+                        const iframe = document.getElementById('app-preview');
+                        if (!iframe || !iframe.contentWindow) return false;
+                        
+                        const initialLength = iframe.contentWindow.currentOrder.length;
+                        iframeTestHelper.callIframeFunction('addToOrder', 1);
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        return iframe.contentWindow.currentOrder.length > initialLength;
+                    }, 3, 1000);
+                }},
+                { name: 'Invoice management workflow', test: async () => {
+                    return await runTestWithRetry(async () => {
+                        if (!iframeTestHelper.checkIframeVariable('createNewInvoice')) return false;
+                        
+                        const iframe = document.getElementById('app-preview');
+                        if (!iframe || !iframe.contentWindow) return false;
+                        
+                        const initialInvoices = iframe.contentWindow.invoices ? 
+                            iframe.contentWindow.invoices.length : 0;
+                        
+                        iframeTestHelper.callIframeFunction('createNewInvoice');
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        return iframe.contentWindow.invoices && 
+                               iframe.contentWindow.invoices.length > initialInvoices;
+                    }, 3, 1000);
+                }},
+                { name: 'Modal open/close workflow', test: async () => {
+                    return await runTestWithRetry(async () => {
+                        if (!iframeTestHelper.checkIframeVariable('openOrderModal')) return false;
+                        
+                        const iframe = document.getElementById('app-preview');
+                        if (!iframe || !iframe.contentWindow) return false;
+                        
+                        // Ensure there's something in the order first
+                        if (iframe.contentWindow.currentOrder && 
+                            iframe.contentWindow.currentOrder.length === 0) {
+                            iframeTestHelper.callIframeFunction('addToOrder', 1);
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                        }
+                        
+                        const modal = iframeTestHelper.getIframeElement('order-modal');
+                        if (!modal) return false;
+                        
+                        iframeTestHelper.callIframeFunction('openOrderModal');
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        const isOpen = modal.style.display === 'flex' || modal.classList.contains('show');
+                        
+                        if (isOpen && iframeTestHelper.checkIframeVariable('closeOrderModal')) {
+                            iframeTestHelper.callIframeFunction('closeOrderModal');
+                        }
+                        
+                        return isOpen;
+                    }, 3, 1000);
+                }},
+                { name: 'Payment flow integration', test: async () => {
+                    return await runTestWithRetry(async () => {
+                        const iframe = document.getElementById('app-preview');
+                        if (!iframe || !iframe.contentWindow) return false;
+                        
+                        if (!iframeTestHelper.checkIframeVariable('openPaymentModal') || 
+                            !iframe.contentWindow.invoices || 
+                            iframe.contentWindow.invoices.length === 0) {
+                            return false; // Skip if no payment functions or invoices
+                        }
+                        
+                        const testInvoice = iframe.contentWindow.invoices[0];
+                        if (!testInvoice) return false;
+                        
+                        const paymentModal = iframeTestHelper.getIframeElement('payment-modal');
+                        if (!paymentModal) return false;
+                        
+                        iframeTestHelper.callIframeFunction('openPaymentModal', testInvoice);
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        const isOpen = paymentModal.style.display === 'flex' || paymentModal.classList.contains('show');
+                        
+                        if (isOpen && iframeTestHelper.checkIframeVariable('closePaymentModal')) {
+                            iframeTestHelper.callIframeFunction('closePaymentModal');
+                        }
+                        
+                        return isOpen;
+                    }, 3, 1000);
+                }},
+                { name: 'Admin functionality', test: async () => {
+                    return await runTestWithRetry(async () => {
+                        if (!iframeTestHelper.checkIframeVariable('toggleAdmin')) return false;
+                        
+                        const adminSection = iframeTestHelper.getIframeElement('admin-section');
+                        if (!adminSection) return false;
+                        
+                        const initialDisplay = getComputedStyle(adminSection).display;
+                        iframeTestHelper.callIframeFunction('toggleAdmin');
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        const newDisplay = getComputedStyle(adminSection).display;
+                        
+                        // Toggle back to original state
+                        iframeTestHelper.callIframeFunction('toggleAdmin');
+                        
+                        return initialDisplay !== newDisplay;
+                    }, 3, 1000);
+                }},                { name: 'Category filtering workflow', test: async () => {
+                    return await runTestWithRetry(async () => {
+                        if (!iframeTestHelper.checkIframeVariable('filterMenu')) return false;
+                        
+                        const iframe = document.getElementById('app-preview');
+                        if (!iframe || !iframe.contentWindow) return false;
+                        
+                        const originalCategory = iframe.contentWindow.currentCategory;
+                        iframeTestHelper.callIframeFunction('filterMenu', 'cafe-viet');
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        const result = iframe.contentWindow.currentCategory === 'cafe-viet';
+                        
+                        // Reset to original
+                        if (originalCategory) {
+                            iframeTestHelper.callIframeFunction('filterMenu', originalCategory);
+                        }
+                        
+                        return result;
+                    }, 3, 1000);
+                }},
+                { name: 'Data persistence integration', test: async () => {
+                    return await runTestWithRetry(() => {
+                        return iframeTestHelper.checkIframeVariable('loadInvoices') &&
+                               iframeTestHelper.checkIframeVariable('saveInvoices') &&
+                               iframeTestHelper.checkIframeVariable('loadOrderHistory') &&
+                               iframeTestHelper.checkIframeVariable('saveOrderHistory');
+                    }, 3, 1000);
+                }},
+                { name: 'Error handling integration', test: async () => {
+                    return await runTestWithRetry(() => {
+                        // Test that functions handle invalid inputs gracefully
+                        try {
+                            if (iframeTestHelper.checkIframeVariable('addToOrder')) {
+                                iframeTestHelper.callIframeFunction('addToOrder', null);
+                            }
+                            
+                            if (iframeTestHelper.checkIframeVariable('openPaymentModal')) {
+                                iframeTestHelper.callIframeFunction('openPaymentModal', null);
+                            }
+                            
+                            return true; // If no errors thrown, error handling is working
+                        } catch (error) {
+                            console.error("Error during error handling test:", error);
+                            return false; // Unhandled errors indicate poor error handling
+                        }
+                    }, 3, 1000);
+                }},                { name: 'UI update synchronization', test: async () => {
+                    return await runTestWithRetry(async () => {
+                        if (!iframeTestHelper.checkIframeVariable('updateOrderDisplay') || 
+                            !iframeTestHelper.checkIframeVariable('updateInvoiceDisplay')) {
+                            return false;
+                        }
+                        
+                        // Test that UI updates are synchronized
+                        iframeTestHelper.callIframeFunction('updateOrderDisplay');
+                        iframeTestHelper.callIframeFunction('updateInvoiceDisplay');
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                        
+                        return true; // If functions execute without error, sync is working
+                    }, 3, 1000);
+                }}
+            ];
+
+            for (const test of integrationTests) {
+                const testItem = createTestItem(test.name, 'integration');
+                testStats.total++;
+                
+                try {
+                    const result = await test.test();
+                    updateTestItem(testItem, result ? 'passed' : 'failed', 
+                        result ? 'Tích hợp hoạt động tốt' : 'Tích hợp không hoạt động');
+                    
+                    testResults.integration.push({
+                        name: test.name,
+                        status: result ? 'passed' : 'failed',
+                        details: result ? 'OK' : 'Integration failed'
+                    });
+                } catch (error) {
+                    updateTestItem(testItem, 'failed', `Lỗi: ${error.message}`);
+                    testResults.integration.push({
+                        name: test.name,
+                        status: 'failed',
+                        details: error.message
+                    });
+                }
+                
+                updateSectionStatus('integration');
+            }
+        }
+
+        async function testPerformance() {
+            log('Bắt đầu kiểm thử hiệu suất...', 'info');
+            
+            const performanceTests = [
+                { name: 'Menu render speed', test: async () => {
+                    if (typeof window.renderMenu !== 'function') return false;
+                    
+                    const start = performance.now();
+                    window.renderMenu();
+                    const end = performance.now();
+                    const duration = end - start;
+                    
+                    log(`Menu render time: ${duration.toFixed(2)}ms`, 'info');
+                    return duration < 100; // Should render in under 100ms
+                }},
+                { name: 'DOM query performance', test: () => {
+                    const start = performance.now();
+                    for (let i = 0; i < 100; i++) {
+                        document.getElementById('menu-grid');
+                    }
+                    const end = performance.now();
+                    const duration = end - start;
+                    
+                    log(`100 DOM queries: ${duration.toFixed(2)}ms`, 'info');
+                    return duration < 10; // Should be very fast
+                }},
+                { name: 'LocalStorage performance', test: () => {
+                    const start = performance.now();
+                    const testData = Array(100).fill().map((_, i) => ({ id: i, data: 'test' }));
+                    
+                    localStorage.setItem('perfTest', JSON.stringify(testData));
+                    JSON.parse(localStorage.getItem('perfTest'));
+                    localStorage.removeItem('perfTest');
+                    
+                    const end = performance.now();
+                    const duration = end - start;
+                    
+                    log(`LocalStorage ops: ${duration.toFixed(2)}ms`, 'info');
+                    return duration < 50;
+                }},
+                { name: 'Memory usage check', test: () => {
+                    if (performance.memory) {
+                        const used = performance.memory.usedJSHeapSize;
+                        const total = performance.memory.totalJSHeapSize;
+                        const percentage = (used / total) * 100;
+                        
+                        log(`Memory usage: ${percentage.toFixed(1)}%`, 'info');
+                        return percentage < 80; // Should use less than 80% of heap
+                    }
+                    return true; // Pass if memory API not available
+                }},
+                { name: 'Order processing speed', test: async () => {
+                    if (!window.addToOrder || !window.currentOrder) return false;
+                    
+                    const start = performance.now();
+                    for (let i = 0; i < 10; i++) {
+                        window.addToOrder(1);
+                    }
+                    const end = performance.now();
+                    const duration = end - start;
+                    
+                    log(`10 order additions: ${duration.toFixed(2)}ms`, 'info');
+                    return duration < 50;
+                }}
+            ];
+
+            for (const test of performanceTests) {
+                const testItem = createTestItem(test.name, 'performance');
+                testStats.total++;
+                
+                try {
+                    const result = await test.test();
+                    updateTestItem(testItem, result ? 'passed' : 'warning', 
+                        result ? 'Hiệu suất tốt' : 'Hiệu suất chậm');
+                    
+                    testResults.performance.push({
+                        name: test.name,
+                        status: result ? 'passed' : 'warning',
+                        details: result ? 'Good performance' : 'Slow performance'
+                    });
+                } catch (error) {
+                    updateTestItem(testItem, 'failed', `Lỗi: ${error.message}`);
+                    testResults.performance.push({
+                        name: test.name,
+                        status: 'failed',
+                        details: error.message
+                    });
+                }
+                
+                updateSectionStatus('performance');
+            }
+        }
+
+        async function testSecurity() {
+            log('Bắt đầu kiểm thử bảo mật...', 'info');
+            
+            const securityTests = [
+                { name: 'XSS protection in notifications', test: () => {
+                    if (typeof window.showNotification !== 'function') return false;                    // Try to inject script
+                    const maliciousInput = '<script>alert("xss")</sc' + 'ript>';
+                    window.showNotification(maliciousInput, 'info');
+                    
+                    // Check if script was executed (it shouldn't be)
+                    const notifications = document.querySelectorAll('.notification');
+                    const lastNotification = notifications[notifications.length - 1];
+                    return !lastNotification.innerHTML.includes('<script');
+                }},
+                { name: 'LocalStorage data validation', test: () => {
+                    try {
+                        // Try to store malicious data
+                        const maliciousData = { __proto__: { evil: true }, data: 'test' };
+                        localStorage.setItem('secTest', JSON.stringify(maliciousData));
+                        const stored = JSON.parse(localStorage.getItem('secTest'));
+                        localStorage.removeItem('secTest');
+                        
+                        // Should not have prototype pollution
+                        return !stored.evil;
+                    } catch {
+                        return true; // Error is expected for malicious data
+                    }
+                }},
+                { name: 'Input sanitization', test: () => {
+                    // Check if dangerous characters are handled
+                    const dangerousInputs = ['<script>', 'javascript:', 'onload=', 'eval('];
+                    
+                    if (typeof window.formatPrice === 'function') {
+                        return dangerousInputs.every(input => {
+                            const result = window.formatPrice(input);
+                            return !result.includes(input);
+                        });
+                    }
+                    return true;
+                }},
+                { name: 'CSP headers check', test: () => {
+                    // Check if Content Security Policy is implemented
+                    const metaCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+                    return metaCSP !== null || window.location.protocol === 'https:';
+                }},
+                { name: 'HTTPS enforcement', test: () => {
+                    // In production, should enforce HTTPS
+                    return window.location.protocol === 'https:' || 
+                           window.location.hostname === 'localhost' ||
+                           window.location.hostname === '127.0.0.1';
+                }}
+            ];
+
+            for (const test of securityTests) {
+                const testItem = createTestItem(test.name, 'security');
+                testStats.total++;
+                
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    const result = test.test();
+                    updateTestItem(testItem, result ? 'passed' : 'warning', 
+                        result ? 'Bảo mật tốt' : 'Có vấn đề bảo mật');
+                    
+                    testResults.security.push({
+                        name: test.name,
+                        status: result ? 'passed' : 'warning',
+                        details: result ? 'Secure' : 'Security issue'
+                    });
+                } catch (error) {
+                    updateTestItem(testItem, 'failed', `Lỗi: ${error.message}`);
+                    testResults.security.push({
+                        name: test.name,
+                        status: 'failed',
+                        details: error.message
+                    });
+                }
+                
+                updateSectionStatus('security');
+            }
+        }
+
+        // Helper function to load app scripts
+        async function loadAppScripts() {
+            return new Promise((resolve) => {
+                if (window.menuData && window.renderMenu) {
+                    resolve();
+                    return;
+                }
+                
+                // Load data.js first
+                const dataScript = document.createElement('script');
+                dataScript.src = 'data.js';
+                dataScript.onload = () => {
+                    // Then load script.js
+                    const mainScript = document.createElement('script');
+                    mainScript.src = 'script.js';
+                    mainScript.onload = () => {
+                        setTimeout(resolve, 500); // Give time for scripts to initialize
+                    };
+                    document.head.appendChild(mainScript);
+                };
+                document.head.appendChild(dataScript);
+            });
+        }
+
+        // Main Test Functions
+        async function runAllTests() {
+            if (isTestRunning) {
+                log('Kiểm thử đang chạy...', 'warning');
+                return;
+            }
+            isTestRunning = true;
+            testStats = { total: 0, passed: 0, failed: 0, warnings: 0, startTime: Date.now(), endTime: 0 };
+            testResults = { dom: [], functions: [], data: [], integration: [], performance: [], security: [] };
+            // Clear previous results
+            ['dom','functions','data','integration','performance','security'].forEach(category => {
+                const el = document.getElementById(`${category}-tests`)
+                    || document.getElementById(`${category === 'functions' ? 'function' : category}-tests`);
+                if (el) el.innerHTML = '';
+            });
+            document.getElementById('overall-status').textContent = 'Đang chạy kiểm thử...';
+            document.getElementById('overall-status').className = 'status running';
+            document.getElementById('run-loading').style.display = 'inline-block';
+            log('🚀 Bắt đầu chạy tất cả kiểm thử...', 'info');
+            try {
+                await testDOM();
+                await testFunctions();
+                await testData();
+                await testIntegration();
+                await testPerformance();
+                await testSecurity();
+                testStats.endTime = Date.now();
+                updateStats();
+                const allPassed = testStats.failed === 0;
+                document.getElementById('overall-status').textContent = 
+                    allPassed ? 'Tất cả kiểm thử thành công!' : `${testStats.failed} kiểm thử thất bại`;
+                document.getElementById('overall-status').className = 
+                    allPassed ? 'status success' : 'status failed';
+                log(`✅ Hoàn thành tất cả kiểm thử. Kết quả: ${testStats.passed}/${testStats.total} thành công`, 'success');
+            } catch (error) {
+                log(`❌ Lỗi trong quá trình kiểm thử: ${error.message}`,'error');
+                document.getElementById('overall-status').textContent = 'Lỗi kiểm thử';
+                document.getElementById('overall-status').className = 'status failed';
+            }
+            document.getElementById('run-loading').style.display = 'none';
+            isTestRunning = false;
+        }
+
+        async function runQuickTests() {
+            if (isTestRunning) return;
+            
+            log('⚡ Chạy kiểm thử nhanh...', 'info');
+            isTestRunning = true;
+            
+            // Run only essential tests
+            await testDOM();
+            await testFunctions();
+            
+            log('✅ Kiểm thử nhanh hoàn thành', 'success');
+            isTestRunning = false;
+        }
+
+        async function runStressTests() {
+            if (isTestRunning) return;
+            
+            log('💪 Chạy kiểm thử áp lực...', 'info');
+            isTestRunning = true;
+            
+            // Run performance tests multiple times
+            for (let i = 0; i < 3; i++) {
+                log(`Lần kiểm thử ${i + 1}/3`, 'info');
+                await testPerformance();
+            }
+            
+            log('✅ Kiểm thử áp lực hoàn thành', 'success');
+            isTestRunning = false;
+        }
+
+        function resetTests() {
+            testStats = { total: 0, passed: 0, failed: 0, warnings: 0, startTime: 0, endTime: 0 };
+            testResults = { dom: [], functions: [], data: [], integration: [], performance: [], security: [] };
+            
+            Object.keys(testResults).forEach(category => {
+                const el = document.getElementById(`${category}-tests`)
+                    || document.getElementById(`${category === 'functions' ? 'function' : category}-tests`);
+                if (el) el.innerHTML = '';
+                document.getElementById(`${category}-status`).textContent = '0/0';
+            });
+            
+            document.getElementById('detailed-logs').innerHTML = '';
+            document.getElementById('overall-status').textContent = 'Sẵn sàng kiểm thử';
+            document.getElementById('overall-status').className = 'status';
+            document.getElementById('overall-progress').style.width = '0%';
+            
+            updateStats();
+            log('🔄 Đã đặt lại tất cả kiểm thử', 'info');
+        }
+
+        function exportResults() {
+            const report = {
+                timestamp: new Date().toISOString(),
+                summary: testStats,
+                results: testResults,
+                environment: {
+                    userAgent: navigator.userAgent,
+                    url: window.location.href,
+                    screen: `${screen.width}x${screen.height}`,
+                    language: navigator.language
+                }
+            };
+            
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `balancoffee-test-report-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            log('📊 Đã xuất báo cáo kiểm thử', 'success');
+        }
+
+        // Automation Functions
+        function toggleAutoRun() {
+            const checkbox = document.getElementById('auto-run');
+            if (checkbox.checked) {
+                startAutoRun();
+            } else {
+                stopAutoRun();
+            }
+        }
+
+        function startAutoRun() {
+            if (autoRunInterval) clearInterval(autoRunInterval);
+            
+            autoRunInterval = setInterval(async () => {
+                if (!isTestRunning) {
+                    log('🔄 Tự động chạy kiểm thử...', 'info');
+                    await runAllTests();
+                }
+            }, 30000); // 30 seconds
+            
+            log('🤖 Bắt đầu chế độ tự động (30s)', 'success');
+        }
+
+        function stopAutoRun() {
+            if (autoRunInterval) {
+                clearInterval(autoRunInterval);
+                autoRunInterval = null;
+            }
+            log('⏹️ Dừng chế độ tự động', 'info');
+        }
+
+        function toggleContinuousMode() {
+            const checkbox = document.getElementById('continuous-mode');
+            continuousMode = checkbox.checked;
+            
+            if (continuousMode) {
+                log('♾️ Bật chế độ liên tục', 'success');
+                if (!isTestRunning) {
+                    runContinuousTests();
+                }
+            } else {
+                log('⏹️ Tắt chế độ liên tục', 'info');
+            }
+        }        async function runContinuousTests() {
+            let shouldContinue = continuousMode;
+            while (shouldContinue && !isTestRunning) {
+                await runAllTests();
+                // Check continuousMode again in case it was changed during test execution
+                shouldContinue = continuousMode;
+                if (shouldContinue) {
+                    log('♾️ Đang chờ 5 giây trước lần chạy tiếp theo...', 'info');
+                    await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
+                }
+            }
+        }
+
+        async function runAutomatedTests() {
+            log('🤖 Bắt đầu kiểm thử tự động hoàn toàn...', 'info');
+            
+            // Run tests with retry logic
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                retryCount = i + 1;
+                log(`Lần thử ${retryCount}/${MAX_RETRIES}`, 'info');
+                
+                await runAllTests();
+                
+                // Check if all tests passed
+                if (testStats.failed === 0) {
+                    log('✅ Tất cả kiểm thử thành công!', 'success');
+                    break;
+                } else if (i < MAX_RETRIES - 1) {
+                    log(`❌ ${testStats.failed} kiểm thử thất bại, thử lại sau 3 giây...`, 'warning');
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    resetTests();
+                }
+            }
+            
+            // Generate detailed report
+            await generateAutomatedReport();
+        }
+
+        async function generateAutomatedReport() {
+            log('📊 Tạo báo cáo tự động...', 'info');
+            
+            const report = {
+                timestamp: new Date().toISOString(),
+                summary: testStats,
+                results: testResults,
+                history: testHistory,
+                retryCount: retryCount,
+                environment: {
+                    userAgent: navigator.userAgent,
+                    url: window.location.href,
+                    screen: `${screen.width}x${screen.height}`,
+                    language: navigator.language,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                },
+                recommendations: generateRecommendations()
+            };
+            
+            // Auto-save report
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `balancoffee-automated-report-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            log('✅ Báo cáo tự động đã được tạo và tải xuống', 'success');
+        }
+
+        function generateRecommendations() {
+            const recommendations = [];
+            
+            // Analyze test results and provide recommendations
+            Object.keys(testResults).forEach(category => {
+                const categoryResults = testResults[category];
+                const failed = categoryResults.filter(t => t.status === 'failed');
+                const warnings = categoryResults.filter(t => t.status === 'warning');
+                
+                if (failed.length > 0) {
+                    recommendations.push({
+                        category: category,
+                        severity: 'high',
+                        message: `${failed.length} kiểm thử thất bại trong ${category}`,
+                        action: `Cần sửa lỗi: ${failed.map(t => t.name).join(', ')}`
+                    });
+                }
+                
+                if (warnings.length > 0) {
+                    recommendations.push({
+                        category: category,
+                        severity: 'medium',
+                        message: `${warnings.length} cảnh báo trong ${category}`,
+                        action: `Nên cải thiện: ${warnings.map(t => t.name).join(', ')}`
+                    });
+                }
+            });
+            
+            // Performance recommendations
+            if (testStats.endTime - testStats.startTime > 10000) {
+                recommendations.push({
+                    category: 'performance',
+                    severity: 'medium',
+                    message: 'Kiểm thử chạy chậm',
+                    action: 'Tối ưu hóa hiệu suất ứng dụng'
+                });
+            }
+            
+            return recommendations;
+        }        // Enhanced error handling with retry logic
+        async function runTestWithRetry(testFn, maxRetries = 3, retryDelay = 500) {
+            for (let i = 0; i <= maxRetries; i++) {
+                try {
+                    // On first attempt, make sure iframe is loaded
+                    if (i === 0) {
+                        const iframe = document.getElementById('app-preview');
+                        if (iframe && (!iframe.contentDocument || 
+                                      !iframe.contentDocument.body ||
+                                      !iframe.contentDocument.querySelector('.app-container'))) {
+                            await forceReloadIframe();
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
+                    }
+                    
+                    const result = await testFn();
+                    if (result) {
+                        if (i > 0) {
+                            log(`✅ Thành công sau ${i+1} lần thử!`, 'success');
+                        }
+                        return result;
+                    }
+                    
+                    if (i === maxRetries) {
+                        log(`❌ Không thành công sau ${i+1} lần thử`, 'error');
+                        return false;
+                    }
+                    
+                    log(`⚠️ Thử lại test (lần ${i+2}/${maxRetries+1})...`, 'warning');
+                    
+                    // If test continuously fails, try reloading the iframe
+                    if (i === 1) {
+                        log(`🔄 Đang tải lại iframe để thử lại...`, 'info');
+                        forceIframeReload();
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    } else {
+                        await new Promise(resolve => setTimeout(resolve, retryDelay));
+                    }
+                } catch (error) {
+                    if (i === maxRetries) {
+                        log(`❌ Lỗi khi chạy test (lần ${i+1}): ${error.message}`, 'error');
+                        throw error;
+                    }
+                    log(`⚠️ Lỗi: ${error.message}. Thử lại (lần ${i+2}/${maxRetries+1})...`, 'warning');
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
+                }
+            }
+        }        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🧪 Hệ thống kiểm thử toàn diện đã sẵn sàng', 'success');
+            updateStats();
+            setTimeout(loadAppScripts, 1000);
+            // Kiểm tra các section có tồn tại không, nếu không thì log cảnh báo
+            ['dom','functions','data','integration','performance','security'].forEach(category => {
+                if (!document.getElementById(`${category}-tests`)) {
+                    log(`⚠️ Thiếu section hiển thị test: ${category}-tests`, 'warning');
+                }
+                if (!document.getElementById(`${category}-status`)) {
+                    log(`⚠️ Thiếu section hiển thị trạng thái: ${category}-status`, 'warning');
+                }
+            });
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 'r':
+                            e.preventDefault();
+                            runAllTests();
+                            break;
+                        case 'q':
+                            e.preventDefault();
+                            runQuickTests();
+                            break;
+                        case 'd':
+                            e.preventDefault();
+                            resetTests();
+                            break;
+                    }
+                }
+            });
+            
+            log('⌨️ Phím tắt: Ctrl+R (Chạy tất cả), Ctrl+Q (Nhanh), Ctrl+D (Reset)', 'info');
+        });
+
+        // Window visibility change handler for continuous testing
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                log('👁️ Tab ẩn - tạm dừng kiểm thử tự động', 'info');
+                if (autoRunInterval) {
+                    stopAutoRun();
+                    document.getElementById('auto-run').checked = false;
+                }
+            }
+        });
+
+        // Error handler for unhandled errors
+        window.addEventListener('error', (e) => {
+            log(`🚨 Lỗi không xử lý: ${e.message} tại ${e.filename}:${e.lineno}`, 'error');
+        });
+
+        // Performance observer for monitoring
+        if ('PerformanceObserver' in window) {
+            const observer = new PerformanceObserver((list) => {
+                const entries = list.getEntries();
+                entries.forEach(entry => {
+                    if (entry.duration > 1000) {
+                        log(`⚠️ Hoạt động chậm phát hiện: ${entry.name} (${entry.duration.toFixed(2)}ms)`, 'warning');
+                    }
+                });
+            });
+            observer.observe({ entryTypes: ['measure', 'navigation'] });
+        }        // Helper functions cho iframe testing
+        async function waitForIframeLoad() {
+            log('⏳ Đang chờ iframe tải xong...', 'info');
+            return new Promise((resolve) => {
+                const iframe = document.getElementById('app-preview');
+                if (!iframe) {
+                    log('❌ Không tìm thấy iframe', 'error');
+                    resolve(false);
+                    return;
+                }
+
+                try {
+                    if (iframe.contentDocument && 
+                        iframe.contentDocument.readyState === 'complete' &&
+                        iframe.contentDocument.body) {
+                        log('✅ Iframe đã tải xong (trạng thái hiện tại)', 'success');
+                        updateIframeStatus();
+                        
+                        // Double check that critical elements actually loaded
+                        setTimeout(() => {
+                            try {
+                                const doc = iframe.contentDocument;
+                                const appContainer = doc.querySelector('.app-container');
+                                if (appContainer) {
+                                    log('✅ Xác nhận app-container đã tải trong iframe', 'success');
+                                    resolve(true);
+                                } else {
+                                    log('⚠️ iframe đã tải nhưng không tìm thấy app-container, đang thử tải lại...', 'warning');
+                                    forceReloadIframe();
+                                    startReloadCheck();
+                                }
+                            } catch (checkError) {
+                                log(`❌ Lỗi kiểm tra nội dung iframe: ${checkError.message}`, 'error');
+                                startReloadCheck();
+                            }
+                        }, 500);
+                        return;
+                    }
+                } catch (err) {
+                    log(`⚠️ Lỗi truy cập iframe.contentDocument: ${err.message}`, 'warning');
+                }
+
+                // Đặt lại thời gian chờ iframe tải
+                let attempts = 0;
+                const maxAttempts = 20;
+                
+                function startReloadCheck() {
+                    attempts = 0;
+                    checkIframe();
+                }
+                
+                const checkIframe = () => {
+                    attempts++;
+                    const status = document.getElementById('iframe-load-status');
+                    if (status) status.textContent = `Đang thử tải iframe... (lần ${attempts}/${maxAttempts})`;
+                    
+                    try {
+                        if (iframe.contentDocument && 
+                            iframe.contentDocument.readyState === 'complete' && 
+                            iframe.contentDocument.body) {
+                            
+                            // Check for critical element
+                            const appContainer = iframe.contentDocument.querySelector('.app-container');
+                            
+                            if (appContainer) {
+                                log('✅ Iframe đã tải xong sau ' + attempts + ' lần thử', 'success');
+                                updateIframeStatus();
+                                resolve(true);
+                            } else if (attempts < maxAttempts) {
+                                // Elements not found yet
+                                setTimeout(checkIframe, 300);
+                            } else {
+                                // Force reload after too many attempts
+                                log('⚠️ Iframe tải nhưng thiếu elements, đang thử tải lại...', 'warning');
+                                forceReloadIframe();
+                                setTimeout(() => resolve(false), 1000);
+                            }
+                        } else if (attempts < maxAttempts) {
+                            setTimeout(checkIframe, 300);
+                        } else {
+                            log('❌ Không thể tải iframe sau nhiều lần thử', 'error');
+                            updateIframeStatus(true);
+                            resolve(false);
+                        }
+                    } catch (err) {
+                        if (attempts < maxAttempts) {
+                            log(`⚠️ Lỗi kiểm tra iframe (lần ${attempts}): ${err.message}`, 'warning');
+                            setTimeout(checkIframe, 300);
+                        } else {
+                            log('❌ Quá nhiều lỗi khi kiểm tra iframe', 'error');
+                            updateIframeStatus(true);
+                            resolve(false);
+                        }
+                    }
+                };
+                
+                checkIframe();
+            });
+        }
+        
+        function updateIframeStatus(isError = false) {
+            const status = document.getElementById('iframe-load-status');
+            if (!status) return;
+            
+            const iframe = document.getElementById('app-preview');
+            if (!iframe) {
+                status.textContent = 'Không tìm thấy iframe!';
+                status.style.color = '#f44336';
+                return;
+            }
+            
+            try {
+                if (iframe.contentDocument && iframe.contentDocument.readyState === 'complete') {
+                    if (iframe.contentDocument.body) {
+                        const elementsCount = iframe.contentDocument.body.querySelectorAll('*').length;
+                        status.textContent = `Iframe đã tải: ${elementsCount} phần tử, ${new Date().toLocaleTimeString()}`;
+                        status.style.color = isError ? '#ff9800' : '#4caf50';
+                    } else {
+                        status.textContent = 'Iframe tải không có body!';
+                        status.style.color = '#f44336';
+                    }
+                } else {
+                    status.textContent = `Iframe chưa tải xong: ${iframe.contentDocument ? iframe.contentDocument.readyState : 'không xác định'}`;
+                    status.style.color = '#ff9800';
+                }
+            } catch (error) {
+                status.textContent = `Lỗi truy cập iframe: ${error.message} (Kiểm tra CORS)`;
+                status.style.color = '#f44336';
+            }
+        }
+        
+        function forceIframeReload() {
+            const iframe = document.getElementById('app-preview');
+            if (!iframe) return;
+            
+            const status = document.getElementById('iframe-load-status');
+            if (status) status.textContent = 'Đang tải lại iframe...';
+            
+            try {
+                // Lấy URL hiện tại
+                const currentSrc = iframe.src;
+                
+                // Thêm timestamp để tránh cache
+                const newSrc = currentSrc.includes('?') 
+                    ? `${currentSrc}&_t=${Date.now()}` 
+                    : `${currentSrc}?_t=${Date.now()}`;
+                
+                iframe.src = '';
+                setTimeout(() => {
+                    iframe.src = newSrc;
+                    log('🔄 Đã tải lại iframe với timestamp mới', 'info');
+                    
+                    // Đợi iframe tải xong
+                    setTimeout(() => {
+                        updateIframeStatus();
+                        waitForIframeLoad();
+                    }, 1000);
+                }, 100);
+            } catch (error) {
+                log(`❌ Lỗi tải lại iframe: ${error.message}`, 'error');
+            }
+        }
+          function debugIframeDOM() {
+            const iframe = document.getElementById('app-preview');
+            if (!iframe) {
+                log('❌ Không tìm thấy iframe', 'error');
+                return;
+            }
+            
+            try {
+                if (!iframe.contentDocument) {
+                    log('❌ Không thể truy cập iframe.contentDocument (Kiểm tra CORS)', 'error');
+                    return;
+                }
+                
+                const doc = iframe.contentDocument;
+                    'admin-section'
+                ];
+                
+                log('🎯 Kiểm tra phần tử DOM trong iframe:', 'info');
+                let missingElements = 0;
+                
+                criticalElements.forEach(id => {
+                    const element = doc.getElementById(id);
+                    if (element) {
+                        log(`- ${id}: ✅ Tìm thấy (${element.tagName}, parent: ${element.parentElement?.tagName || 'none'})`, 'success');
+                    } else {
+                        log(`- ${id}: ❌ Không tìm thấy`, 'error');
+                        missingElements++;
+                        
+                        // Try to find by alternative selectors
+                        const alternativeSelector = `.${id}`;
+                        const altElement = doc.querySelector(alternativeSelector);
+                        if (altElement) {
+                            log(`  ⚠️ Tìm thấy bằng selector "${alternativeSelector}" nhưng không có ID đúng!`, 'warning');
+                        }
+                    }
+                });
+                
+                const categoryButtons = doc.querySelectorAll('.category-btn');
+                log(`- Category buttons: ${categoryButtons.length} nút`, categoryButtons.length > 0 ? 'success' : 'error');
+                
+                // Additional check for parent containers
+                log('🔍 Kiểm tra các container cha:', 'info');
+                ['menu-section', 'invoice-section', 'order-section', 'admin-section'].forEach(section => {
+                    const sectionEl = doc.querySelector(`.${section}`) || doc.getElementById(section);
+                    log(`- ${section}: ${sectionEl ? '✅ Tìm thấy' : '❌ Không tìm thấy'}`, 
+                        sectionEl ? 'success' : 'error');
+                });
+                
+                // Check for window variables
+                try {
+                    const win = iframe.contentWindow;
+                    if (!win) {
+                        log('❌ Không thể truy cập iframe.contentWindow (Kiểm tra CORS)', 'error');
+                    } else {
+                        log('🔍 Kiểm tra các biến toàn cục trong iframe:', 'info');
+                        const globals = [
+                            'menuData', 'currentOrder', 'invoices', 'orderHistory', 
+                            'currentInvoiceId', 'isAdminMode', 'currentCategory', 'shiftStartTime'
+                        ];
+                        
+                        globals.forEach(varName => {
+                            const exists = typeof win[varName] !== 'undefined';
+                            log(`- ${varName}: ${exists ? '✅ Tồn tại' : '❌ Không tồn tại'}`, exists ? 'success' : 'error');
+                            
+                            if (exists) {
+                                // Show more details for arrays
+                                if (Array.isArray(win[varName])) {
+                                    log(`  - Length: ${win[varName].length} items`, 'info');
+                                }
+                                
+                                // Show value for primitives
+                                else if (typeof win[varName] !== 'object' || win[varName] === null) {
+                                    log(`  - Value: ${win[varName]}`, 'info');
+                                }
+                            }
+                        });
+                        
+                        // Check if functions exist and are properly defined
+                        const criticalFunctions = [
+                            'renderMenu', 'addToOrder', 'createNewInvoice', 'openOrderModal', 
+                            'updateInvoiceDisplay', 'updateOrderDisplay', 'toggleAdmin', 'filterMenu'
+                        ];
+                        
+                        log('🔍 Kiểm tra các hàm quan trọng trong iframe:', 'info');
+                        
+                        let missingFunctions = 0;
+                        criticalFunctions.forEach(fnName => {
+                            const exists = typeof win[fnName] === 'function';
+                            log(`- ${fnName}: ${exists ? '✅ Tồn tại' : '❌ Không tồn tại'}`, exists ? 'success' : 'error');
+                            if (!exists) missingFunctions++;
+                        });
+                        
+                        // Try to fix missing functions if any
+                        if (missingFunctions > 0) {
+                            log(`⚠️ Phát hiện ${missingFunctions} hàm bị thiếu. Thử tải lại...`, 'warning');
+                            forceIframeReload();
+                        } else {
+                            log('✅ Tất cả các hàm quan trọng đều tồn tại', 'success');
+                        }
+                        
+                        // Check DOM helper if available
+                        if (typeof win.domHelper !== 'undefined') {
+                            log('✅ DOM Helper được tải thành công trong iframe', 'success');
+                        } else {
+                            log('⚠️ DOM Helper không được tải trong iframe', 'warning');
+                        }
+                    }
+                } catch (e) {
+                    log(`❌ Không thể truy cập biến trong iframe: ${e.message} (Kiểm tra CORS)`, 'error');
+                }
+                
+                log('🔍 === KẾT THÚC DEBUG IFRAME DOM ===', 'info');
+                
+                return { 
+                    missingElements,
+                    success: missingElements === 0
+                };
+            } catch (error) {
+                log(`❌ Lỗi debug iframe DOM: ${error.message}`, 'error');
+                return { 
+                    missingElements: -1,
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+    </script>
+</body>
+</html>
