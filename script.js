@@ -722,13 +722,55 @@ function selectInvoice(invoiceId) {
 }
 
 function editInvoice(invoiceId) {
-    selectInvoice(invoiceId);
-    showNotification(`Đang chỉnh sửa hóa đơn #${invoiceId}`, 'info');
+    try {
+        console.log('✏️ Edit invoice called:', invoiceId);
+        
+        const invoice = invoices.find(inv => inv.id === invoiceId);
+        if (!invoice) {
+            console.error('❌ Invoice not found:', invoiceId);
+            showNotification('Không tìm thấy hóa đơn để chỉnh sửa', 'error');
+            return;
+        }
+        
+        // Mark invoice as being edited
+        invoice.isEditing = true;
+        
+        // Set current invoice and load items to order
+        currentInvoiceId = invoiceId;
+        window.currentInvoiceId = currentInvoiceId;
+        
+        // Copy invoice items to current order for editing
+        currentOrder = invoice.items ? invoice.items.map(item => ({...item})) : [];
+        window.currentOrder = currentOrder;
+        
+        console.log('✅ Invoice loaded for editing:', {
+            invoiceId,
+            itemCount: currentOrder.length,
+            items: currentOrder
+        });
+        
+        updateInvoiceDisplay();
+        updateOrderDisplay();
+        showSidebarControls();
+        
+        showNotification(`Đang chỉnh sửa hóa đơn #${invoiceId}`, 'info');
+        
+    } catch (error) {
+        console.error('❌ Error editing invoice:', error);
+        showNotification('Lỗi chỉnh sửa hóa đơn: ' + error.message, 'error');
+    }
 }
 
 function deselectInvoice() {
     try {
         console.log('📋 Deselecting invoice...');
+        
+        // Clear editing state from all invoices
+        invoices.forEach(invoice => {
+            if (invoice.isEditing) {
+                delete invoice.isEditing;
+            }
+        });
         
         currentInvoiceId = null;
         window.currentInvoiceId = currentInvoiceId;
@@ -736,11 +778,13 @@ function deselectInvoice() {
         currentOrder = [];
         window.currentOrder = currentOrder;
         
+        saveInvoices();
         updateInvoiceDisplay();
         updateOrderDisplay();
+        updateInvoiceCount();
         hideSidebarControls();
         
-        showNotification('Đã bỏ chọn hóa đơn', 'info');
+        showNotification('Đã hủy chỉnh sửa hóa đơn', 'info');
         
     } catch (error) {
         console.error('❌ Error deselecting invoice:', error);
@@ -766,10 +810,30 @@ function deleteInvoiceById(invoiceId) {
 }
 
 function processPayment(invoiceId) {
-    console.log('💳 Process payment called for:', invoiceId);
-    const invoice = invoices.find(inv => inv.id === invoiceId);
-    if (invoice) {
+    try {
+        console.log('💳 Process payment called for:', invoiceId);
+        const invoice = invoices.find(inv => inv.id === invoiceId);
+        
+        if (!invoice) {
+            showNotification('Không tìm thấy hóa đơn để thanh toán', 'error');
+            return;
+        }
+        
+        if (!invoice.items || invoice.items.length === 0) {
+            showNotification('Hóa đơn trống không thể thanh toán', 'error');
+            return;
+        }
+        
+        if (invoice.status === 'paid') {
+            showNotification('Hóa đơn này đã được thanh toán', 'warning');
+            return;
+        }
+        
         openPaymentModal(invoice);
+        
+    } catch (error) {
+        console.error('❌ Error processing payment:', error);
+        showNotification('Lỗi xử lý thanh toán: ' + error.message, 'error');
     }
 }
 
@@ -895,19 +959,21 @@ function confirmOrder() {
         }
         
         let invoice;
+        const total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
         // If editing an existing invoice, update it
         if (currentInvoiceId) {
             invoice = invoices.find(inv => inv.id === currentInvoiceId);
             if (invoice) {
                 invoice.items = [...currentOrder];
-                invoice.total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                invoice.total = total;
+                invoice.updatedAt = new Date().toISOString();
                 delete invoice.isEditing;
-                saveInvoices();
+                
+                console.log('📝 Updated existing invoice:', invoice.id);
             }
         } else {
             // Create new invoice with current order
-            const total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const invoiceId = 'HD' + Date.now().toString().slice(-6);
             
             invoice = {
@@ -920,23 +986,28 @@ function confirmOrder() {
             };
             
             invoices.push(invoice);
-            saveInvoices();
+            console.log('🆕 Created new invoice:', invoice.id);
         }
+        
+        saveInvoices();
         
         if (invoice) {
             closeOrderModal();
             
-            const orderRecord = {
-                id: invoice.id,
-                items: [...invoice.items],
-                total: invoice.total,
-                timestamp: invoice.createdAt,
-                status: 'completed'
-            };
-            
-            orderHistory.push(orderRecord);
-            saveOrderHistory();
-            window.orderHistory = orderHistory;
+            // Only add to order history for new invoices, not updates
+            if (!currentInvoiceId) {
+                const orderRecord = {
+                    id: invoice.id,
+                    items: [...invoice.items],
+                    total: invoice.total,
+                    timestamp: invoice.createdAt,
+                    status: 'completed'
+                };
+                
+                orderHistory.push(orderRecord);
+                saveOrderHistory();
+                window.orderHistory = orderHistory;
+            }
             
             // Clear editing state
             currentInvoiceId = null;
@@ -950,7 +1021,7 @@ function confirmOrder() {
             hideSidebarControls();
             
             showNotification(`Đã xác nhận đơn hàng #${invoice.id}`, 'success');
-            console.log('✅ Order confirmed and added to history');
+            console.log('✅ Order confirmed and processed');
         }
         
     } catch (error) {
@@ -1036,18 +1107,33 @@ function confirmPayment() {
     try {
         console.log('💰 Confirming payment...');
         
-        if (!currentInvoiceId) {
-            showNotification('Không có hóa đơn được chọn', 'error');
+        // Get current invoice being viewed in payment modal
+        const paymentModal = document.getElementById('payment-modal');
+        const paymentTitle = document.getElementById('payment-modal-title');
+        
+        if (!paymentTitle) {
+            showNotification('Không thể xác định hóa đơn thanh toán', 'error');
             return;
         }
         
-        const invoice = invoices.find(inv => inv.id === currentInvoiceId);
+        // Extract invoice ID from modal title 
+        const titleText = paymentTitle.textContent;
+        const invoiceIdMatch = titleText.match(/#(HD\d+)/);
+        
+        if (!invoiceIdMatch) {
+            showNotification('Không thể xác định ID hóa đơn', 'error');
+            return;
+        }
+        
+        const invoiceId = invoiceIdMatch[1];
+        const invoice = invoices.find(inv => inv.id === invoiceId);
+        
         if (!invoice) {
-            showNotification('Không tìm thấy hóa đơn', 'error');
+            showNotification('Không tìm thấy hóa đơn để thanh toán', 'error');
             return;
         }
         
-        if (invoice.items.length === 0) {
+        if (!invoice.items || invoice.items.length === 0) {
             showNotification('Hóa đơn trống không thể thanh toán', 'error');
             return;
         }
@@ -1056,6 +1142,9 @@ function confirmPayment() {
         invoice.status = 'paid';
         invoice.paidAt = new Date().toISOString();
         invoice.paymentMethod = 'qr';
+        
+        // Clear editing state if this was being edited
+        delete invoice.isEditing;
         
         // Save and update UI
         saveInvoices();
@@ -1072,11 +1161,15 @@ function confirmPayment() {
         
         console.log('✅ Payment confirmed for invoice:', invoice.id);
         
-        // Clear current invoice after showing success
-        setTimeout(() => {
+        // Clear current editing state if this invoice was being edited
+        if (currentInvoiceId === invoiceId) {
             currentInvoiceId = null;
             window.currentInvoiceId = currentInvoiceId;
-        }, 100);
+            currentOrder = [];
+            window.currentOrder = currentOrder;
+            updateOrderDisplay();
+            hideSidebarControls();
+        }
         
     } catch (error) {
         console.error('❌ Error confirming payment:', error);
@@ -1316,9 +1409,15 @@ function confirmEmployeeInfo() {
             return;
         }
         
-        // Start new shift with employee info
-        proceedWithNewShift(employeeName, shiftNote);
+        console.log('👤 Employee info confirmed:', { employeeName, shiftNote });
+        
+        // Close modal first
         closeEmployeeModal();
+        
+        // Start new shift with employee info
+        setTimeout(() => {
+            proceedWithNewShift(employeeName, shiftNote);
+        }, 100);
         
     } catch (error) {
         console.error('❌ Error confirming employee info:', error);
@@ -1792,6 +1891,16 @@ function finishEditInvoice(invoiceId) {
             return;
         }
         
+        // Update invoice with current order if there are items
+        if (currentOrder && currentOrder.length > 0) {
+            invoice.items = [...currentOrder];
+            invoice.total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            invoice.updatedAt = new Date().toISOString();
+            
+            console.log('📝 Updated invoice items:', invoice.items);
+            console.log('💰 Updated invoice total:', invoice.total);
+        }
+        
         // Remove editing state
         delete invoice.isEditing;
         
@@ -1805,6 +1914,7 @@ function finishEditInvoice(invoiceId) {
         saveInvoices();
         updateInvoiceDisplay();
         updateOrderDisplay();
+        updateInvoiceCount();
         hideSidebarControls();
         
         showNotification(`Đã hoàn tất chỉnh sửa hóa đơn #${invoiceId}`, 'success');
@@ -1819,64 +1929,22 @@ function finishEditInvoice(invoiceId) {
 // ADVANCED UI/UX ENHANCEMENT FUNCTIONS
 // =============================================================================
 
-// Network status monitoring
-let networkStatus = navigator.onLine;
-let networkStatusIndicator = null;
+// Online-only system - Network monitoring removed
+// System requires internet connection to function properly
 
 function initializeNetworkMonitoring() {
     try {
-        window.addEventListener('online', handleNetworkOnline);
-        window.addEventListener('offline', handleNetworkOffline);
+        // Always assume online - no offline fallback
+        console.log('✅ Online-only system initialized - requires internet connection');
         
-        // Create network status indicator (initially hidden)
-        networkStatusIndicator = document.createElement('div');
-        networkStatusIndicator.className = 'network-status';
-        networkStatusIndicator.innerHTML = `
-            <i class="fas fa-wifi-slash"></i>
-            <span>Mất kết nối mạng - Đang hoạt động offline</span>
-        `;
-        document.body.appendChild(networkStatusIndicator);
-        
-        // Show status only if currently offline
+        // Optional: Check if user is online and show warning if not
         if (!navigator.onLine) {
-            networkStatusIndicator.classList.add('show');
+            showNotification('Cần kết nối internet để sử dụng hệ thống', 'warning');
         }
         
-        console.log('✅ Network monitoring initialized, status:', navigator.onLine ? 'online' : 'offline');
     } catch (error) {
         console.error('❌ Error initializing network monitoring:', error);
     }
-}
-
-function handleNetworkOnline() {
-    networkStatus = true;
-    if (networkStatusIndicator) {
-        networkStatusIndicator.classList.remove('show');
-        networkStatusIndicator.innerHTML = `
-            <i class="fas fa-wifi"></i>
-            <span>Đã kết nối lại</span>
-        `;
-        networkStatusIndicator.classList.add('online');
-        networkStatusIndicator.classList.add('show');
-        
-        setTimeout(() => {
-            networkStatusIndicator.classList.remove('show');
-        }, 3000);
-    }
-    console.log('✅ Network back online');
-}
-
-function handleNetworkOffline() {
-    networkStatus = false;
-    if (networkStatusIndicator) {
-        networkStatusIndicator.classList.remove('online');
-        networkStatusIndicator.innerHTML = `
-            <i class="fas fa-wifi-slash"></i>
-            <span>Mất kết nối mạng - Đang hoạt động offline</span>
-        `;
-        networkStatusIndicator.classList.add('show');
-    }
-    console.log('⚠️ Network offline');
 }
 
 // Touch gesture enhancements
@@ -1934,13 +2002,15 @@ function handleTouchEnd(event) {
         const modal = document.querySelector('.modal.show');
         if (modal) {
             const modalContent = modal.querySelector('.modal-content');
-            const rect = modalContent.getBoundingClientRect();
-            
-            if (touchStartY < rect.top + 50) {
-                if (modal.id === 'payment-modal') closePaymentModal();
-                else if (modal.id === 'order-modal') closeOrderModal();
-                else if (modal.id === 'employee-modal') closeEmployeeModal();
-                else if (modal.id === 'end-shift-modal') closeEndShiftModal();
+            if (modalContent) {
+                const rect = modalContent.getBoundingClientRect();
+                
+                if (touchStartY < rect.top + 50) {
+                    if (modal.id === 'payment-modal') closePaymentModal();
+                    else if (modal.id === 'order-modal') closeOrderModal();
+                    else if (modal.id === 'employee-modal') closeEmployeeModal();                    else if (modal.id === 'end-shift-modal') closeEndShiftModal();
+                    else if (modal.id === 'success-modal') closeSuccessModal();
+                }
             }
         }
     }
@@ -2027,8 +2097,7 @@ function initializeAutoSave() {
         const tempOrder = localStorage.getItem('balancoffee_temp_order');
         if (tempOrder) {
             try {
-                const parsedOrder = JSON.parse(tempOrder);
-                if (validateOrderData(parsedOrder) && parsedOrder.length > 0) {
+                const parsedOrder = JSON.parse(tempOrder);                if (validateOrderData(parsedOrder) && parsedOrder.length > 0) {
                     const restore = confirm('Phát hiện đơn hàng chưa hoàn thành. Bạn có muốn khôi phục không?');
                     if (restore) {
                         currentOrder = parsedOrder;
@@ -2073,8 +2142,7 @@ function initializeKeyboardShortcuts() {
                 event.preventDefault();
                 toggleSidebar();
             }
-            
-            // Escape: Close modals
+              // Escape: Close modals
             if (event.key === 'Escape') {
                 const modal = document.querySelector('.modal.show');
                 if (modal) {
@@ -2082,6 +2150,7 @@ function initializeKeyboardShortcuts() {
                     else if (modal.id === 'order-modal') closeOrderModal();
                     else if (modal.id === 'employee-modal') closeEmployeeModal();
                     else if (modal.id === 'end-shift-modal') closeEndShiftModal();
+                    else if (modal.id === 'success-modal') closeSuccessModal();
                 }
             }
             

@@ -1,23 +1,6 @@
 
 /* ===== CSS CHO CÁC ELEMENTS THIẾU ===== */
 
-/* Classes thiếu */
-.sidebar-content {
-    /* Thêm styles cho .sidebar-content */
-}
-
-.sidebar-header {
-    /* Thêm styles cho .sidebar-header */
-}
-
-.close-sidebar {
-    /* Thêm styles cho .close-sidebar */
-}
-
-.sidebar-actions {
-    /* Thêm styles cho .sidebar-actions */
-}
-
 /* IDs thiếu */
 #loading-screen {
     /* Thêm styles cho #loading-screen */
@@ -27,16 +10,60 @@
     /* Thêm styles cho #app-container */
 }
 
+#invoice-count {
+    /* Thêm styles cho #invoice-count */
+}
+
 #menu-grid {
     /* Thêm styles cho #menu-grid */
+}
+
+#admin-section {
+    /* Thêm styles cho #admin-section */
+}
+
+#shift-start-display {
+    /* Thêm styles cho #shift-start-display */
+}
+
+#shift-employee-display {
+    /* Thêm styles cho #shift-employee-display */
+}
+
+#current-shift-orders {
+    /* Thêm styles cho #current-shift-orders */
+}
+
+#current-shift-revenue {
+    /* Thêm styles cho #current-shift-revenue */
+}
+
+#current-shift-bestseller {
+    /* Thêm styles cho #current-shift-bestseller */
+}
+
+#current-shift-list {
+    /* Thêm styles cho #current-shift-list */
 }
 
 #sidebar {
     /* Thêm styles cho #sidebar */
 }
 
+#pending-count {
+    /* Thêm styles cho #pending-count */
+}
+
+#paid-count {
+    /* Thêm styles cho #paid-count */
+}
+
 #invoice-list {
     /* Thêm styles cho #invoice-list */
+}
+
+#sidebar-controls {
+    /* Thêm styles cho #sidebar-controls */
 }
 
 #current-order-summary {
@@ -55,12 +82,60 @@
     /* Thêm styles cho #order-modal */
 }
 
+#order-modal-title {
+    /* Thêm styles cho #order-modal-title */
+}
+
+#order-items {
+    /* Thêm styles cho #order-items */
+}
+
 #order-total {
     /* Thêm styles cho #order-total */
 }
 
+#delete-invoice-btn {
+    /* Thêm styles cho #delete-invoice-btn */
+}
+
+#confirm-order-btn {
+    /* Thêm styles cho #confirm-order-btn */
+}
+
+#order-action-text {
+    /* Thêm styles cho #order-action-text */
+}
+
+#payment-btn {
+    /* Thêm styles cho #payment-btn */
+}
+
 #payment-modal {
     /* Thêm styles cho #payment-modal */
+}
+
+#payment-modal-title {
+    /* Thêm styles cho #payment-modal-title */
+}
+
+#payment-order-summary {
+    /* Thêm styles cho #payment-order-summary */
+}
+
+#payment-total {
+    /* Thêm styles cho #payment-total */
+}
+
+#qr-image {
+    /* Thêm styles cho #qr-image */
+}
+
+#qr-fallback {
+    /* Thêm styles cho #qr-fallback */
+}
+
+#qr-code {
+    /* Thêm styles cho #qr-code */
 }
 
 #payment-actions {
@@ -75,7 +150,43 @@
     /* Thêm styles cho #end-shift-modal */
 }
 
+#shift-start-time {
+    /* Thêm styles cho #shift-start-time */
+}
+
+#shift-end-time {
+    /* Thêm styles cho #shift-end-time */
+}
+
+#shift-total-orders {
+    /* Thêm styles cho #shift-total-orders */
+}
+
+#shift-total-revenue {
+    /* Thêm styles cho #shift-total-revenue */
+}
+
+#shift-bestseller-item {
+    /* Thêm styles cho #shift-bestseller-item */
+}
+
+#shift-orders-details {
+    /* Thêm styles cho #shift-orders-details */
+}
+
 #employee-modal {
     /* Thêm styles cho #employee-modal */
+}
+
+#employee-name {
+    /* Thêm styles cho #employee-name */
+}
+
+#shift-note {
+    /* Thêm styles cho #shift-note */
+}
+
+#modal-shift-time {
+    /* Thêm styles cho #modal-shift-time */
 }
 
