@@ -442,7 +442,7 @@ function updateOrderDisplay() {
         
         if (currentOrder.length === 0) {
             orderList.innerHTML = '<p class="empty-order">Chưa có món nào trong đơn hàng</p>';
-            orderTotal?.textContent && (orderTotal.textContent = formatPrice(0));
+            if (orderTotal) orderTotal.textContent = formatPrice(0);
             return;
         }
         
@@ -1213,7 +1213,7 @@ function updatePaymentModalContent(invoice) {
         const invoiceItems = document.getElementById('payment-order-summary');
         const invoiceTotal = document.getElementById('payment-total');
         
-        invoiceId?.textContent && (invoiceId.textContent = `Thanh toán hóa đơn #${invoice.id}`);
+        if (invoiceId) invoiceId.textContent = `Thanh toán hóa đơn #${invoice.id}`;
         
         if (invoiceItems && invoice.items) {
             invoiceItems.innerHTML = invoice.items.map(item => `
@@ -1502,9 +1502,9 @@ function openEmployeeModal() {
         if (modalShiftTime) {
             modalShiftTime.textContent = formatDateTime(currentTime.toISOString());
         }
-        
-        // Clear inputs        employeeNameInput?.value && (employeeNameInput.value = '');
-        shiftNoteInput?.value && (shiftNoteInput.value = '');
+          // Clear inputs
+        if (employeeNameInput) employeeNameInput.value = '';
+        if (shiftNoteInput) shiftNoteInput.value = '';
         
         // Show modal
         modal.style.display = 'flex';
@@ -1586,76 +1586,89 @@ function startNewShift() {
 function proceedWithNewShift(employeeName, shiftNote) {
     const confirmStart = confirm(`Bạn có chắc chắn muốn bắt đầu ca mới với nhân viên "${employeeName}"?\nDữ liệu ca hiện tại sẽ được lưu trữ.`);
     
-    if (confirmStart) {
-        try {
-            const currentShiftOrders = getCurrentShiftOrders();
-            if (currentShiftOrders.length > 0) {
-                const archiveData = {
-                    shiftInfo: {
-                        startTime: shiftStartTime,
-                        endTime: new Date().toISOString(),
-                        totalOrders: currentShiftOrders.length,
-                        totalRevenue: currentShiftOrders.reduce((sum, order) => sum + (order.total || 0), 0),
-                        employee: currentShiftEmployee,
-                        note: currentShiftNote
-                    },
-                    orders: currentShiftOrders
-                };
-                
-                let archivedShifts = JSON.parse(localStorage.getItem('balancoffee_archived_shifts') || '[]');
-                archivedShifts.push(archiveData);
-                localStorage.setItem('balancoffee_archived_shifts', JSON.stringify(archivedShifts));
-                
-                showNotification('Đã lưu trữ dữ liệu ca cũ', 'success');
-            }
-            
-            // Set new shift info
-            shiftStartTime = new Date().toISOString();
-            localStorage.setItem('shiftStartTime', shiftStartTime);
-            saveShiftEmployee(employeeName, shiftNote);
-            
-            const shiftStartDate = new Date(shiftStartTime);
-            orderHistory = orderHistory.filter(order => {
-                if (!order.timestamp) return true;
-                const orderDate = new Date(order.timestamp);
-                return orderDate < shiftStartDate;
-            });
-            
-            saveOrderHistory();
-            
-            const currentTime = new Date(shiftStartTime);
-            invoices = invoices.filter(invoice => {
-                if (!invoice.createdAt) return true;
-                const invoiceDate = new Date(invoice.createdAt);
-                return invoiceDate < currentTime;
-            });
-            
-            saveInvoices();
-            
-            // Update UI
-            if (isAdminMode) {
-                displayCurrentShiftData();
-            }
-            updateInvoiceDisplay();
-            updateInvoiceCount();
-            updateShiftInfoDisplay();
-            
-            // Add animation effect
-            const shiftInfo = document.querySelector('.current-shift-info');
-            if (shiftInfo) {
-                shiftInfo.classList.add('new-shift');
-                setTimeout(() => {
-                    shiftInfo.classList.remove('new-shift');
-                }, 3000);
-            }
-            
-            showNotification(`Đã bắt đầu ca mới với nhân viên ${employeeName}!`, 'success');
-            debugLog(`✅ New shift started at: ${new Date(shiftStartTime).toLocaleString()}, Employee: ${employeeName}`);
-            
-        } catch (error) {
-            debugError('❌ Error starting new shift:', error);
-            showNotification('Lỗi bắt đầu ca mới: ' + error.message, 'error');
-        }
+    if (!confirmStart) return;
+    
+    try {
+        archiveCurrentShiftData();
+        setupNewShift(employeeName, shiftNote);
+        cleanupOldData();
+        updateUIAfterNewShift();
+        addNewShiftAnimation();
+        
+        showNotification(`Đã bắt đầu ca mới với nhân viên ${employeeName}!`, 'success');
+        debugLog(`✅ New shift started at: ${new Date(shiftStartTime).toLocaleString()}, Employee: ${employeeName}`);
+        
+    } catch (error) {
+        debugError('❌ Error starting new shift:', error);
+        showNotification('Lỗi bắt đầu ca mới: ' + error.message, 'error');
+    }
+}
+
+function archiveCurrentShiftData() {
+    const currentShiftOrders = getCurrentShiftOrders();
+    if (currentShiftOrders.length === 0) return;
+    
+    const archiveData = {
+        shiftInfo: {
+            startTime: shiftStartTime,
+            endTime: new Date().toISOString(),
+            totalOrders: currentShiftOrders.length,
+            totalRevenue: currentShiftOrders.reduce((sum, order) => sum + (order.total || 0), 0),
+            employee: currentShiftEmployee,
+            note: currentShiftNote
+        },
+        orders: currentShiftOrders
+    };
+    
+    const archivedShifts = JSON.parse(localStorage.getItem('balancoffee_archived_shifts') || '[]');
+    archivedShifts.push(archiveData);
+    localStorage.setItem('balancoffee_archived_shifts', JSON.stringify(archivedShifts));
+    
+    showNotification('Đã lưu trữ dữ liệu ca cũ', 'success');
+}
+
+function setupNewShift(employeeName, shiftNote) {
+    shiftStartTime = new Date().toISOString();
+    localStorage.setItem('shiftStartTime', shiftStartTime);
+    saveShiftEmployee(employeeName, shiftNote);
+}
+
+function cleanupOldData() {
+    const shiftStartDate = new Date(shiftStartTime);
+    
+    // Filter order history
+    orderHistory = orderHistory.filter(order => {
+        if (!order.timestamp) return true;
+        const orderDate = new Date(order.timestamp);
+        return orderDate < shiftStartDate;
+    });
+    saveOrderHistory();
+    
+    // Filter invoices
+    invoices = invoices.filter(invoice => {
+        if (!invoice.createdAt) return true;
+        const invoiceDate = new Date(invoice.createdAt);
+        return invoiceDate < shiftStartDate;
+    });
+    saveInvoices();
+}
+
+function updateUIAfterNewShift() {
+    if (isAdminMode) {
+        displayCurrentShiftData();
+    }
+    updateInvoiceDisplay();
+    updateInvoiceCount();
+    updateShiftInfoDisplay();
+}
+
+function addNewShiftAnimation() {
+    const shiftInfo = document.querySelector('.current-shift-info');
+    if (shiftInfo) {
+        shiftInfo.classList.add('new-shift');
+        setTimeout(() => {
+            shiftInfo.classList.remove('new-shift');
+        }, 3000);
     }
 }
 
@@ -1711,10 +1724,9 @@ function getCurrentShiftOrders() {
             debugError('❌ Error parsing shift start time:', dateError);
             return [];
         }
-        
-        // Filter orders for current shift
+          // Filter orders for current shift
         const shiftOrders = orderHistory.filter(order => {
-            if (!order || !order.timestamp) {
+            if (!order?.timestamp) {
                 return false;
             }
             
@@ -2025,10 +2037,8 @@ function initializeApp() {
                 closeBtn.className = 'fas fa-chevron-left';
                 debugLog('✅ Sidebar close button icon set');
             }
-            
-            // Test sidebar functionality
+              // Test sidebar functionality
             debugLog('🧪 Testing sidebar...');
-            debugLog('Sidebar element found:', !!sidebar);
             debugLog('Sidebar classes:', sidebar.className);
             debugLog('Sidebar transform:', sidebar.style.transform);
         } else {
@@ -2047,20 +2057,21 @@ function initializeApp() {
                 filterMenu(btn.dataset.category);
             });
         });
-        
-        // Add debug sidebar test button (for development)
+          // Add debug sidebar test button (for development)
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             debugLog('🔧 Development mode - adding debug controls');
             window.debugSidebar = function() {
                 const sidebar = document.getElementById('sidebar');
                 debugLog('=== SIDEBAR DEBUG ===');
-                debugLog('Element exists:', !!sidebar);
                 if (sidebar) {
+                    debugLog('Element exists: true');
                     debugLog('Classes:', sidebar.className);
                     debugLog('Style transform:', sidebar.style.transform);
                     debugLog('Computed transform:', window.getComputedStyle(sidebar).transform);
                     debugLog('Width:', window.getComputedStyle(sidebar).width);
                     debugLog('Z-index:', window.getComputedStyle(sidebar).zIndex);
+                } else {
+                    debugLog('Element exists: false');
                 }
                 debugLog('==================');
             };
@@ -2239,26 +2250,39 @@ function handleTouchEnd(event) {
     const touchY = event.changedTouches[0].clientY;
     const diffY = touchStartY - touchY;
     
-    // Swipe down to close modal
-    if (diffY < -100) {
-        const modal = document.querySelector('.modal.show');
-        if (modal) {
-            const modalContent = modal.querySelector('.modal-content');
-            if (modalContent) {
-                const rect = modalContent.getBoundingClientRect();
-                if (touchStartY < rect.top + 50) {
-                    if (modal.id === 'payment-modal') closePaymentModal();
-                    else if (modal.id === 'order-modal') closeOrderModal();
-                    else if (modal.id === 'employee-modal') closeEmployeeModal();
-                    else if (modal.id === 'end-shift-modal') closeEndShiftModal();
-                    else if (modal.id === 'success-modal') closeSuccessModal();
-                }
-            }
-        }
-    }
-    
+    // Reset touch coordinates
     touchStartY = null;
     touchStartX = null;
+    
+    // Only process swipe down gestures
+    if (diffY >= -100) return;
+    
+    const modal = document.querySelector('.modal.show');
+    if (!modal) return;
+    
+    const modalContent = modal.querySelector('.modal-content');
+    if (!modalContent) return;
+    
+    const rect = modalContent.getBoundingClientRect();
+    if (touchStartY >= rect.top + 50) return;
+    
+    // Close the appropriate modal
+    closeModalByType(modal.id);
+}
+
+function closeModalByType(modalId) {
+    const modalClosers = {
+        'payment-modal': closePaymentModal,
+        'order-modal': closeOrderModal,
+        'employee-modal': closeEmployeeModal,
+        'end-shift-modal': closeEndShiftModal,
+        'success-modal': closeSuccessModal
+    };
+    
+    const closeFunction = modalClosers[modalId];
+    if (closeFunction) {
+        closeFunction();
+    }
 }
 
 // Performance monitoring
@@ -2348,9 +2372,9 @@ function initializeAutoSave() {
                         updateOrderDisplay();
                         showNotification('Đã khôi phục đơn hàng chưa hoàn thành', 'success');
                     }
-                    localStorage.removeItem('balancoffee_temp_order');
-                }
-            } catch (e) {
+                    localStorage.removeItem('balancoffee_temp_order');                }
+            } catch (parseError) {
+                debugError('❌ Error parsing temp order data:', parseError);
                 localStorage.removeItem('balancoffee_temp_order');
             }
         }
@@ -2370,43 +2394,55 @@ function initializeKeyboardShortcuts() {
                 return;
             }
             
-            // Ctrl/Cmd + N: New order
-            if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
-                event.preventDefault();
-                if (currentOrder.length > 0) {
-                    openOrderModal();
-                } else {
-                    showNotification('Đơn hàng trống', 'warning');
-                }
-            }
-              // Ctrl/Cmd + S: Toggle sidebar
-            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-                event.preventDefault();
-                toggleSidebar();
-            }
-            
-            // Escape: Close modals
-            if (event.key === 'Escape') {
-                const modal = document.querySelector('.modal.show');
-                if (modal) {
-                    if (modal.id === 'payment-modal') closePaymentModal();
-                    else if (modal.id === 'order-modal') closeOrderModal();
-                    else if (modal.id === 'employee-modal') closeEmployeeModal();
-                    else if (modal.id === 'end-shift-modal') closeEndShiftModal();
-                    else if (modal.id === 'success-modal') closeSuccessModal();
-                }
-            }
-            
-            // F1: Help (toggle admin mode)
-            if (event.key === 'F1') {
-                event.preventDefault();
-                toggleAdmin();
-            }
+            handleKeyboardShortcut(event);
         });
         
         debugLog('✅ Keyboard shortcuts initialized');
     } catch (error) {
         debugError('❌ Error initializing keyboard shortcuts:', error);
+    }
+}
+
+function handleKeyboardShortcut(event) {
+    // Ctrl/Cmd + N: New order
+    if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
+        event.preventDefault();
+        handleNewOrderShortcut();
+        return;
+    }
+    
+    // Ctrl/Cmd + S: Toggle sidebar
+    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        toggleSidebar();
+        return;
+    }
+    
+    // Escape: Close modals
+    if (event.key === 'Escape') {
+        handleEscapeShortcut();
+        return;
+    }
+    
+    // F1: Help (toggle admin mode)
+    if (event.key === 'F1') {
+        event.preventDefault();
+        toggleAdmin();
+    }
+}
+
+function handleNewOrderShortcut() {
+    if (currentOrder.length > 0) {
+        openOrderModal();
+    } else {
+        showNotification('Đơn hàng trống', 'warning');
+    }
+}
+
+function handleEscapeShortcut() {
+    const modal = document.querySelector('.modal.show');
+    if (modal) {
+        closeModalByType(modal.id);
     }
 }
 
