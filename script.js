@@ -36,6 +36,35 @@ const fallbackMenuData = [
 // UTILITY FUNCTIONS
 // =============================================================================
 
+// Debug and logging utility
+const DEBUG_MODE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.search.includes('debug=true');
+
+function debugLog(message, data = null) {
+    if (!DEBUG_MODE) return;
+    
+    if (data) {
+        debugLog(message, data);
+    } else {
+        debugLog(message);
+    }
+}
+
+function debugError(message, error = null) {
+    if (DEBUG_MODE) {
+        if (error) {
+            debugError(message, error);
+        } else {
+            debugError(message);
+        }
+        return;
+    }
+    
+    // In production, only log critical errors
+    if (error && (error.name === 'SyntaxError' || error.name === 'ReferenceError' || error.name === 'TypeError')) {
+        debugError(message, error);
+    }
+}
+
 function formatPrice(price) {
     if (typeof price !== 'number') {
         price = Number(price) || 0;
@@ -54,8 +83,9 @@ function formatDateTime(dateString) {
 
 function showNotification(message, type = 'info') {
     try {
-        console.log(`[${type.toUpperCase()}] ${message}`);
-          const notification = document.createElement('div');
+        debugLog(`[${type.toUpperCase()}] ${message}`);
+        
+        const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         
         // Get appropriate icon based on notification type
@@ -84,7 +114,7 @@ function showNotification(message, type = 'info') {
         }, 5000);
         
     } catch (error) {
-        console.error('❌ Error showing notification:', error);
+        debugError('❌ Error showing notification:', error);
     }
 }
 
@@ -106,10 +136,10 @@ function loadInvoices() {
         if (saved) {
             invoices = JSON.parse(saved);
             window.invoices = invoices;
-            console.log('✅ Loaded invoices:', invoices.length);
+            debugLog('✅ Loaded invoices:', invoices.length);
         }
     } catch (error) {
-        console.error('❌ Error loading invoices:', error);
+        debugError('❌ Error loading invoices:', error);
         invoices = [];
         window.invoices = invoices;
     }
@@ -118,9 +148,9 @@ function loadInvoices() {
 function saveInvoices() {
     try {
         localStorage.setItem('balancoffee_invoices', JSON.stringify(invoices));
-        console.log('✅ Invoices saved');
+        debugLog('✅ Invoices saved');
     } catch (error) {
-        console.error('❌ Error saving invoices:', error);
+        debugError('❌ Error saving invoices:', error);
     }
 }
 
@@ -130,11 +160,11 @@ function loadOrderHistory() {
         if (saved) {
             orderHistory = JSON.parse(saved);
             window.orderHistory = orderHistory;
-            console.log('✅ Loaded order history:', orderHistory.length);
+            debugLog('✅ Loaded order history:', orderHistory.length);
         }
         return orderHistory;
     } catch (error) {
-        console.error('❌ Error loading order history:', error);
+        debugError('❌ Error loading order history:', error);
         orderHistory = [];
         window.orderHistory = orderHistory;
         return orderHistory;
@@ -144,31 +174,31 @@ function loadOrderHistory() {
 function saveOrderHistory() {
     try {
         localStorage.setItem('balancoffee_order_history', JSON.stringify(orderHistory));
-        console.log('✅ Order history saved');
+        debugLog('✅ Order history saved');
     } catch (error) {
-        console.error('❌ Error saving order history:', error);
+        debugError('❌ Error saving order history:', error);
     }
 }
 
 function getShiftStartTime() {
     try {
-        console.log('🔄 Getting shift start time...');
+        debugLog('🔄 Getting shift start time...');
         const saved = localStorage.getItem('shiftStartTime');
         
         if (saved) {
             shiftStartTime = saved;
-            console.log('✅ Loaded existing shift start time:', formatDateTime(saved));
+            debugLog('✅ Loaded existing shift start time:', formatDateTime(saved));
         } else {
             // Only auto-create if explicitly requested
-            console.log('⚠️ No existing shift found in localStorage');
+            debugLog('⚠️ No existing shift found in localStorage');
             shiftStartTime = null;
         }
         
         window.shiftStartTime = shiftStartTime;
-        console.log('📊 Final shift start time:', shiftStartTime);
+        debugLog('📊 Final shift start time:', shiftStartTime);
         return shiftStartTime;
     } catch (error) {
-        console.error('❌ Error getting shift start time:', error);
+        debugError('❌ Error getting shift start time:', error);
         shiftStartTime = null;
         window.shiftStartTime = shiftStartTime;
         return shiftStartTime;
@@ -177,7 +207,7 @@ function getShiftStartTime() {
 
 function loadShiftEmployee() {
     try {
-        console.log('🔄 Loading shift employee data...');
+        debugLog('🔄 Loading shift employee data...');
         const saved = localStorage.getItem('currentShiftEmployee');
         
         if (saved) {
@@ -185,32 +215,32 @@ function loadShiftEmployee() {
                 const employeeData = JSON.parse(saved);
                 currentShiftEmployee = employeeData.name || null;
                 currentShiftNote = employeeData.note || null;
-                console.log('✅ Loaded shift employee:', currentShiftEmployee);
-                console.log('📝 Shift note:', currentShiftNote);
+                debugLog('✅ Loaded shift employee:', currentShiftEmployee);
+                debugLog('📝 Shift note:', currentShiftNote);
             } catch (parseError) {
-                console.error('❌ Error parsing employee data:', parseError);
+                debugError('❌ Error parsing employee data:', parseError);
                 // Try loading as simple string (backward compatibility)
                 currentShiftEmployee = saved;
                 currentShiftNote = null;
-                console.log('🔄 Loaded as simple string:', currentShiftEmployee);
+                debugLog('🔄 Loaded as simple string:', currentShiftEmployee);
             }
         } else {
             currentShiftEmployee = null;
             currentShiftNote = null;
-            console.log('⚠️ No shift employee data found');
+            debugLog('⚠️ No shift employee data found');
         }
         
         window.currentShiftEmployee = currentShiftEmployee;
         window.currentShiftNote = currentShiftNote;
         
-        console.log('📊 Final employee data:', { 
+        debugLog('📊 Final employee data:', { 
             employee: currentShiftEmployee, 
             note: currentShiftNote 
         });
         
         return { employee: currentShiftEmployee, note: currentShiftNote };
     } catch (error) {
-        console.error('❌ Error loading shift employee:', error);
+        debugError('❌ Error loading shift employee:', error);
         currentShiftEmployee = null;
         currentShiftNote = null;
         window.currentShiftEmployee = currentShiftEmployee;
@@ -227,9 +257,9 @@ function saveShiftEmployee(employee, note) {
         currentShiftNote = note;
         window.currentShiftEmployee = currentShiftEmployee;
         window.currentShiftNote = currentShiftNote;
-        console.log('✅ Shift employee saved:', employee);
+        debugLog('✅ Shift employee saved:', employee);
     } catch (error) {
-        console.error('❌ Error saving shift employee:', error);
+        debugError('❌ Error saving shift employee:', error);
     }
 }
 
@@ -244,14 +274,14 @@ function generateQRCode(amount) {
         
         if (qrImage) {
             qrImage.style.display = 'block';
-            if (qrFallback) qrFallback.style.display = 'none';
+            qrFallback?.style && (qrFallback.style.display = 'none');
         } else {
             generateQRFallback(amount);
         }
         
-        console.log('✅ QR code setup completed for amount:', amount);
+        debugLog('✅ QR code setup completed for amount:', amount);
     } catch (error) {
-        console.error('❌ Error setting up QR code:', error);
+        debugError('❌ Error setting up QR code:', error);
         generateQRFallback(amount);
     }
 }
@@ -290,10 +320,9 @@ function generateQRFallback(amount) {
         
         ctx.font = '10px Arial';
         ctx.fillText('Sử dụng app ngân hàng để thanh toán', 100, 190);
-        
-        console.log('✅ QR canvas fallback generated successfully');
+          debugLog('✅ QR canvas fallback generated successfully');
     } catch (error) {
-        console.error('❌ Error generating QR canvas fallback:', error);
+        debugError('❌ Error generating QR canvas fallback:', error);
     }
 }
 
@@ -306,7 +335,7 @@ function updateInvoiceDisplay() {
         const invoiceList = document.getElementById('invoice-list');
         
         if (!invoiceList) {
-            console.error('❌ Invoice list element not found');
+            debugError('❌ Invoice list element not found');
             return;
         }
         
@@ -328,30 +357,42 @@ function updateInvoiceDisplay() {
                     <i class="fas fa-check-circle" style="color: #28a745;"></i>
                     <p>Tất cả hóa đơn đã được thanh toán</p>
                 </div>
-            `;
-            return;
+            `;            return;
         }
         
         const sortedInvoices = [...pendingInvoices].sort((a, b) =>
             new Date(b.createdAt) - new Date(a.createdAt)
         );
-          invoiceList.innerHTML = sortedInvoices.map(invoice => `
-            <div class="invoice-item ${currentInvoiceId === invoice.id ? 'active' : ''} ${currentInvoiceId === invoice.id ? 'editing' : ''}" 
+          invoiceList.innerHTML = sortedInvoices.map(invoice => {
+            const isActive = currentInvoiceId === invoice.id;
+            const activeClass = isActive ? 'active' : '';
+            const editingClass = isActive ? 'editing' : '';
+            
+            let statusText;
+            if (isActive) {
+                statusText = '⚠ Đang chỉnh sửa';
+            } else if (invoice.status === 'pending') {
+                statusText = 'Chờ thanh toán';
+            } else {
+                statusText = 'Đã thanh toán';
+            }
+            
+            return `
+            <div class="invoice-item ${activeClass} ${editingClass}" 
                  data-invoice-id="${invoice.id}">
                 <div class="invoice-header" onclick="selectInvoice('${invoice.id}')">
                     <span class="invoice-id">Hóa đơn #${invoice.id}</span>
                     <span class="invoice-status ${invoice.status}">
-                        ${currentInvoiceId === invoice.id ? '⚠ Đang chỉnh sửa' : 
-                          (invoice.status === 'pending' ? 'Chờ thanh toán' : 'Đã thanh toán')}
-                    </span>
-                </div>
+                        ${statusText}
+                    </span></div>
                 <div class="invoice-details">
                     <p>Số món: ${invoice.items ? invoice.items.reduce((sum, item) => sum + item.quantity, 0) : 0}</p>
                     <p>Thời gian: ${formatDateTime(invoice.createdAt)}</p>
                 </div>
                 <div class="invoice-total">
                     Tổng: ${formatPrice(invoice.total || 0)}
-                </div>                <div class="invoice-actions">
+                </div>
+                <div class="invoice-actions">
                     ${currentInvoiceId === invoice.id ? `
                         <button class="btn btn-secondary btn-invoice-action" onclick="event.stopPropagation(); deselectInvoice()" title="Hủy chỉnh sửa">
                             <i class="fas fa-times"></i>
@@ -375,16 +416,16 @@ function updateInvoiceDisplay() {
                         <button class="btn btn-danger btn-invoice-action" onclick="event.stopPropagation(); deleteInvoiceById('${invoice.id}')" title="Xóa hóa đơn">
                             <i class="fas fa-trash"></i>
                             <span>Xóa</span>
-                        </button>
-                    ` : ''}
+                        </button>                    ` : ''}
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
         
-        console.log('✅ Invoice display updated:', invoices.length, 'invoices');
+        debugLog(`✅ Invoice display updated: ${invoices.length} invoices`);
         
     } catch (error) {
-        console.error('❌ Error updating invoice display:', error);
+        debugError('❌ Error updating invoice display:', error);
         showNotification('Lỗi cập nhật danh sách hóa đơn: ' + error.message, 'error');
     }
 }
@@ -395,13 +436,13 @@ function updateOrderDisplay() {
         const orderTotal = document.getElementById('order-total');
         
         if (!orderList) {
-            console.log('📝 Order list element not found (order-items)');
+            debugLog('📝 Order list element not found (order-items)');
             return;
         }
         
         if (currentOrder.length === 0) {
             orderList.innerHTML = '<p class="empty-order">Chưa có món nào trong đơn hàng</p>';
-            if (orderTotal) orderTotal.textContent = formatPrice(0);
+            orderTotal?.textContent && (orderTotal.textContent = formatPrice(0));
             return;
         }
         
@@ -428,10 +469,10 @@ function updateOrderDisplay() {
             orderTotal.textContent = formatPrice(total);
         }
         
-        console.log('✅ Order display updated:', currentOrder.length, 'items');
+        debugLog(`✅ Order display updated: ${currentOrder.length} items`);
         
     } catch (error) {
-        console.error('❌ Error updating order display:', error);
+        debugError('❌ Error updating order display:', error);
     }
 }
 
@@ -443,34 +484,34 @@ function updateInvoiceCount() {
         countElements.forEach(el => {
             el.textContent = pendingInvoices.length;
         });
-        
-        console.log('✅ Invoice count updated:', pendingInvoices.length);
+          debugLog('✅ Invoice count updated:', pendingInvoices.length);
     } catch (error) {
-        console.error('❌ Error updating invoice count:', error);
+        debugError('❌ Error updating invoice count:', error);
     }
 }
 
 function renderMenu() {
     try {
-        console.log('🎨 Rendering menu...');
+        debugLog('🎨 Rendering menu...');
         
         const menuContainer = document.getElementById('menu-grid');
         if (!menuContainer) {
-            console.error('❌ Menu container not found (menu-grid)');
+            debugError('❌ Menu container not found (menu-grid)');
             return;
         }
         
         const menuItems = window.menuData || fallbackMenuData;
         menuContainer.innerHTML = '';
-        
-        const filteredItems = currentCategory === 'all' ? 
+          const filteredItems = currentCategory === 'all' ? 
             menuItems : 
             menuItems.filter(item => item.category === currentCategory);
         
         if (filteredItems.length === 0) {
             menuContainer.innerHTML = '<p class="no-items">Không có món nào trong danh mục này.</p>';
             return;
-        }          filteredItems.forEach(item => {
+        }
+        
+        filteredItems.forEach(item => {
             const menuItem = document.createElement('div');
             menuItem.className = 'menu-item-card';
             menuItem.setAttribute('data-category', item.category);
@@ -492,10 +533,10 @@ function renderMenu() {
             menuContainer.appendChild(menuItem);
         });
         
-        console.log('✅ Menu rendered:', filteredItems.length, 'items');
+        debugLog(`✅ Menu rendered: ${filteredItems.length} items`);
         
     } catch (error) {
-        console.error('❌ Error rendering menu:', error);
+        debugError('❌ Error rendering menu:', error);
         showNotification('Lỗi hiển thị menu: ' + error.message, 'error');
     }
 }
@@ -506,13 +547,13 @@ function renderMenu() {
 
 function addToOrder(itemId) {
     try {
-        console.log('🛒 Adding item to order:', itemId);
+        debugLog('🛒 Adding item to order:', itemId);
         
         const menuItems = window.menuData || fallbackMenuData;
         const item = menuItems.find(i => i.id === itemId);
         
         if (!item) {
-            console.error('❌ Item not found:', itemId);
+            debugError('❌ Item not found:', itemId);
             showNotification('Không tìm thấy món này', 'error');
             return;
         }
@@ -551,7 +592,7 @@ function addToOrder(itemId) {
         
         // Show detailed notification
         showNotification(actionMessage, 'success');
-        console.log('✅ Item added to order:', item.name, 'Current order size:', currentOrder.length);
+        debugLog(`✅ Item added to order: ${item.name}, Current order size: ${currentOrder.length}`);
         
         // Add visual feedback to the button
         const button = document.querySelector(`[onclick="addToOrder(${itemId})"]`);
@@ -563,14 +604,20 @@ function addToOrder(itemId) {
         }
         
     } catch (error) {
-        console.error('❌ Error adding item to order:', error);
+        debugError('❌ Error adding item to order:', error);
         showNotification('Lỗi thêm món: ' + error.message, 'error');
     }
 }
 
 function increaseQuantity(itemId) {
-    const item = currentOrder.find(i => i.id === itemId);
-    if (item) {
+    try {
+        const item = currentOrder.find(i => i.id === itemId);
+        if (!item) {
+            debugError('⚠️ Item not found in order:', itemId);
+            showNotification('Không tìm thấy món trong đơn hàng', 'warning');
+            return;
+        }
+        
         item.quantity += 1;
         window.currentOrder = currentOrder;
         
@@ -586,12 +633,29 @@ function increaseQuantity(itemId) {
         }
         
         updateOrderDisplay();
+        debugLog(`✅ Quantity increased for item: ${itemId}, New quantity: ${item.quantity}`);
+        
+    } catch (error) {
+        debugError('❌ Error increasing quantity:', error);
+        showNotification('Lỗi tăng số lượng: ' + error.message, 'error');
     }
 }
 
 function decreaseQuantity(itemId) {
-    const item = currentOrder.find(i => i.id === itemId);
-    if (item && item.quantity > 1) {
+    try {
+        const item = currentOrder.find(i => i.id === itemId);
+        if (!item) {
+            debugError('⚠️ Item not found in order:', itemId);
+            showNotification('Không tìm thấy món trong đơn hàng', 'warning');
+            return;
+        }
+        
+        if (item.quantity <= 1) {
+            debugError('⚠️ Cannot decrease quantity below 1 for item:', itemId);
+            showNotification('Số lượng tối thiểu là 1. Sử dụng nút xóa để loại bỏ món.', 'warning');
+            return;
+        }
+        
         item.quantity -= 1;
         window.currentOrder = currentOrder;
         
@@ -607,49 +671,83 @@ function decreaseQuantity(itemId) {
         }
         
         updateOrderDisplay();
+        debugLog(`✅ Quantity decreased for item: ${itemId}, New quantity: ${item.quantity}`);
+        
+    } catch (error) {
+        debugError('❌ Error decreasing quantity:', error);
+        showNotification('Lỗi giảm số lượng: ' + error.message, 'error');
     }
 }
 
 function removeFromOrder(itemId) {
-    currentOrder = currentOrder.filter(item => item.id !== itemId);
-    window.currentOrder = currentOrder;
-    
-    // Update current invoice if editing
-    if (currentInvoiceId) {
-        const invoice = invoices.find(inv => inv.id === currentInvoiceId);
-        if (invoice) {
-            invoice.items = [...currentOrder];
-            invoice.total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            saveInvoices();
-            updateInvoiceDisplay();
+    try {
+        const itemToRemove = currentOrder.find(i => i.id === itemId);
+        if (!itemToRemove) {
+            debugError('⚠️ Item not found in order:', itemId);
+            showNotification('Không tìm thấy món trong đơn hàng', 'warning');
+            return;
         }
-    }
-    
-    updateOrderDisplay();
-    
-    const item = (window.menuData || fallbackMenuData).find(i => i.id === itemId);
-    if (item) {
-        showNotification(`Đã xóa ${item.name} khỏi đơn hàng`);
+        
+        currentOrder = currentOrder.filter(item => item.id !== itemId);
+        window.currentOrder = currentOrder;
+        
+        // Update current invoice if editing
+        if (currentInvoiceId) {
+            const invoice = invoices.find(inv => inv.id === currentInvoiceId);
+            if (invoice) {
+                invoice.items = [...currentOrder];
+                invoice.total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                saveInvoices();
+                updateInvoiceDisplay();
+            }
+        }
+        
+        updateOrderDisplay();
+        
+        // Get item info for notification
+        const menuData = window.menuData || fallbackMenuData;
+        const item = menuData.find(i => i.id === itemId);
+        const itemName = item ? item.name : `ID: ${itemId}`;
+        
+        showNotification(`Đã xóa ${itemName} khỏi đơn hàng`, 'success');
+        debugLog('✅ Item removed from order:', itemName);
+        
+    } catch (error) {
+        debugError('❌ Error removing item from order:', error);
+        showNotification('Lỗi xóa món: ' + error.message, 'error');
     }
 }
 
 function clearCurrentOrder() {
-    currentOrder = [];
-    window.currentOrder = currentOrder;
-    
-    // Update current invoice if editing
-    if (currentInvoiceId) {
-        const invoice = invoices.find(inv => inv.id === currentInvoiceId);
-        if (invoice) {
-            invoice.items = [];
-            invoice.total = 0;
-            saveInvoices();
-            updateInvoiceDisplay();
+    try {
+        if (currentOrder.length === 0) {
+            showNotification('Đơn hàng đã trống', 'info');
+            return;
         }
+        
+        const itemCount = currentOrder.length;
+        currentOrder = [];
+        window.currentOrder = currentOrder;
+        
+        // Update current invoice if editing
+        if (currentInvoiceId) {
+            const invoice = invoices.find(inv => inv.id === currentInvoiceId);
+            if (invoice) {
+                invoice.items = [];
+                invoice.total = 0;
+                saveInvoices();
+                updateInvoiceDisplay();
+            }
+        }
+        
+        updateOrderDisplay();
+        showNotification(`Đã xóa tất cả ${itemCount} món khỏi đơn hàng`, 'success');
+        debugLog(`✅ Order cleared, removed items: ${itemCount}`);
+        
+    } catch (error) {
+        debugError('❌ Error clearing order:', error);
+        showNotification('Lỗi xóa đơn hàng: ' + error.message, 'error');
     }
-    
-    updateOrderDisplay();
-    showNotification('Đã xóa tất cả món khỏi đơn hàng');
 }
 
 // =============================================================================
@@ -658,7 +756,7 @@ function clearCurrentOrder() {
 
 function createNewInvoice() {
     try {
-        console.log('📄 Creating new empty invoice...');
+        debugLog('📄 Creating new empty invoice...');
         
         // Create empty invoice
         const invoiceId = 'HD' + Date.now().toString().slice(-6);
@@ -690,23 +788,23 @@ function createNewInvoice() {
         showSidebarControls();
         
         showNotification(`Đã tạo hóa đơn rỗng #${invoiceId} - Bắt đầu thêm món`, 'success');
-        console.log('✅ Empty invoice created and selected for editing:', newInvoice);
+        debugLog('✅ Empty invoice created and selected for editing:', newInvoice);
         
         return newInvoice;
         
     } catch (error) {
-        console.error('❌ Error creating invoice:', error);
+        debugError('❌ Error creating invoice:', error);
         showNotification('Lỗi tạo hóa đơn: ' + error.message, 'error');
     }
 }
 
 function selectInvoice(invoiceId) {
     try {
-        console.log('📋 Select invoice called:', invoiceId);
+        debugLog('📋 Select invoice called:', invoiceId);
         
         const invoice = invoices.find(inv => inv.id === invoiceId);
         if (!invoice) {
-            console.error('❌ Invoice not found:', invoiceId);
+            debugError('❌ Invoice not found:', invoiceId);
             showNotification('Không tìm thấy hóa đơn', 'error');
             return;
         }
@@ -717,7 +815,7 @@ function selectInvoice(invoiceId) {
         currentOrder = [...(invoice.items || [])];
         window.currentOrder = currentOrder;
         
-        console.log('✅ Invoice loaded for editing:', invoice);
+        debugLog('✅ Invoice loaded for editing:', invoice);
         
         updateInvoiceDisplay();
         updateOrderDisplay();
@@ -726,18 +824,18 @@ function selectInvoice(invoiceId) {
         showNotification(`Đã chọn hóa đơn #${invoiceId} để chỉnh sửa`, 'success');
         
     } catch (error) {
-        console.error('❌ Error selecting invoice:', error);
+        debugError('❌ Error selecting invoice:', error);
         showNotification('Lỗi chọn hóa đơn: ' + error.message, 'error');
     }
 }
 
 function editInvoice(invoiceId) {
     try {
-        console.log('✏️ Edit invoice called:', invoiceId);
+        debugLog('✏️ Edit invoice called:', invoiceId);
         
         const invoice = invoices.find(inv => inv.id === invoiceId);
         if (!invoice) {
-            console.error('❌ Invoice not found:', invoiceId);
+            debugError('❌ Invoice not found:', invoiceId);
             showNotification('Không tìm thấy hóa đơn để chỉnh sửa', 'error');
             return;
         }
@@ -753,7 +851,7 @@ function editInvoice(invoiceId) {
         currentOrder = invoice.items ? invoice.items.map(item => ({...item})) : [];
         window.currentOrder = currentOrder;
         
-        console.log('✅ Invoice loaded for editing:', {
+        debugLog('✅ Invoice loaded for editing:', {
             invoiceId,
             itemCount: currentOrder.length,
             items: currentOrder
@@ -766,14 +864,14 @@ function editInvoice(invoiceId) {
         showNotification(`Đang chỉnh sửa hóa đơn #${invoiceId}`, 'info');
         
     } catch (error) {
-        console.error('❌ Error editing invoice:', error);
+        debugError('❌ Error editing invoice:', error);
         showNotification('Lỗi chỉnh sửa hóa đơn: ' + error.message, 'error');
     }
 }
 
 function deselectInvoice() {
     try {
-        console.log('📋 Deselecting invoice...');
+        debugLog('📋 Deselecting invoice...');
         
         // Clear editing state from all invoices
         invoices.forEach(invoice => {
@@ -797,31 +895,56 @@ function deselectInvoice() {
         showNotification('Đã hủy chỉnh sửa hóa đơn', 'info');
         
     } catch (error) {
-        console.error('❌ Error deselecting invoice:', error);
+        debugError('❌ Error deselecting invoice:', error);
         showNotification('Lỗi bỏ chọn hóa đơn: ' + error.message, 'error');
     }
 }
 
 function deleteInvoiceById(invoiceId) {
-    console.log('🗑️ Delete invoice called:', invoiceId);
-    const confirmDelete = confirm(`Bạn có chắc chắn muốn xóa hóa đơn #${invoiceId}?`);
-    
-    if (confirmDelete) {
-        invoices = invoices.filter(inv => inv.id !== invoiceId);
-        if (currentInvoiceId === invoiceId) {
-            currentInvoiceId = null;
-            window.currentInvoiceId = currentInvoiceId;
+    try {
+        debugLog('🗑️ Delete invoice called:', invoiceId);
+        
+        const invoice = invoices.find(inv => inv.id === invoiceId);
+        if (!invoice) {
+            showNotification('Không tìm thấy hóa đơn để xóa', 'error');
+            return;
         }
-        saveInvoices();
-        updateInvoiceDisplay();
-        updateInvoiceCount();
-        showNotification(`Đã xóa hóa đơn #${invoiceId}`);
+        
+        const confirmDelete = confirm(`Bạn có chắc chắn muốn xóa hóa đơn #${invoiceId}?\nHành động này không thể hoàn tác.`);
+        
+        if (confirmDelete) {
+            // Remove from invoices array
+            invoices = invoices.filter(inv => inv.id !== invoiceId);
+            
+            // Clear current editing state if this invoice was being edited
+            if (currentInvoiceId === invoiceId) {
+                currentInvoiceId = null;
+                window.currentInvoiceId = currentInvoiceId;
+                currentOrder = [];
+                window.currentOrder = currentOrder;
+                updateOrderDisplay();
+                hideSidebarControls();
+            }
+            
+            // Save and update UI
+            saveInvoices();
+            updateInvoiceDisplay();
+            updateInvoiceCount();
+            
+            showNotification(`Đã xóa hóa đơn #${invoiceId}`, 'success');            debugLog('✅ Invoice deleted successfully:', invoiceId);
+        } else {
+            debugLog('❌ Invoice deletion cancelled by user');
+        }
+        
+    } catch (error) {
+        debugError('❌ Error deleting invoice:', error);
+        showNotification('Lỗi xóa hóa đơn: ' + error.message, 'error');
     }
 }
 
 function processPayment(invoiceId) {
     try {
-        console.log('💳 Process payment called for:', invoiceId);
+        debugLog('💳 Process payment called for:', invoiceId);
         const invoice = invoices.find(inv => inv.id === invoiceId);
         
         if (!invoice) {
@@ -842,7 +965,7 @@ function processPayment(invoiceId) {
         openPaymentModal(invoice);
         
     } catch (error) {
-        console.error('❌ Error processing payment:', error);
+        debugError('❌ Error processing payment:', error);
         showNotification('Lỗi xử lý thanh toán: ' + error.message, 'error');
     }
 }
@@ -854,7 +977,7 @@ function showSidebarControls() {
             controls.style.display = 'flex';
         }
     } catch (error) {
-        console.error('❌ Error showing sidebar controls:', error);
+        debugError('❌ Error showing sidebar controls:', error);
     }
 }
 
@@ -865,7 +988,7 @@ function hideSidebarControls() {
             controls.style.display = 'none';
         }
     } catch (error) {
-        console.error('❌ Error hiding sidebar controls:', error);
+        debugError('❌ Error hiding sidebar controls:', error);
     }
 }
 
@@ -875,7 +998,7 @@ function hideSidebarControls() {
 
 function openOrderModal() {
     try {
-        console.log('📝 Opening order modal...');
+        debugLog('📝 Opening order modal...');
         
         if (!currentOrder || currentOrder.length === 0) {
             showNotification('Đơn hàng trống, vui lòng chọn món trước', 'warning');
@@ -884,7 +1007,7 @@ function openOrderModal() {
         
         const modal = document.getElementById('order-modal');
         if (!modal) {
-            console.error('❌ Order modal not found');
+            debugError('❌ Order modal not found');
             return;
         }
         
@@ -894,20 +1017,20 @@ function openOrderModal() {
         
         setTimeout(() => {
             modal.classList.add('show');
-            console.log('✅ Order modal show class added');
+            debugLog('✅ Order modal show class added');
         }, 50);
         
-        console.log('✅ Order modal opened');
+        debugLog('✅ Order modal opened');
         
     } catch (error) {
-        console.error('❌ Error opening order modal:', error);
+        debugError('❌ Error opening order modal:', error);
         showNotification('Lỗi mở modal đơn hàng: ' + error.message, 'error');
     }
 }
 
 function closeOrderModal() {
     try {
-        console.log('❌ Closing order modal...');
+        debugLog('❌ Closing order modal...');
         
         const modal = document.getElementById('order-modal');
         if (modal) {
@@ -917,10 +1040,10 @@ function closeOrderModal() {
             }, 300);
         }
         
-        console.log('✅ Order modal closed');
+        debugLog('✅ Order modal closed');
         
     } catch (error) {
-        console.error('❌ Error closing order modal:', error);
+        debugError('❌ Error closing order modal:', error);
     }
 }
 
@@ -930,7 +1053,7 @@ function updateOrderModalContent() {
         const modalTotal = document.getElementById('order-total');
         
         if (!modalItems || !modalTotal) {
-            console.log('📝 Modal elements not found (order-items, order-total)');
+            debugLog('📝 Modal elements not found (order-items, order-total)');
             return;
         }
         
@@ -951,17 +1074,16 @@ function updateOrderModalContent() {
         `).join('');
         
         modalTotal.textContent = formatPrice(total);
-        
-        console.log('✅ Order modal content updated');
+          debugLog('✅ Order modal content updated');
         
     } catch (error) {
-        console.error('❌ Error updating order modal content:', error);
+        debugError('❌ Error updating order modal content:', error);
     }
 }
 
 function confirmOrder() {
     try {
-        console.log('✅ Confirming order...');
+        debugLog('✅ Confirming order...');
         
         if (!currentOrder || currentOrder.length === 0) {
             showNotification('Đơn hàng trống, không thể xác nhận', 'warning');
@@ -980,7 +1102,7 @@ function confirmOrder() {
                 invoice.updatedAt = new Date().toISOString();
                 delete invoice.isEditing;
                 
-                console.log('📝 Updated existing invoice:', invoice.id);
+                debugLog('📝 Updated existing invoice:', invoice.id);
             }
         } else {
             // Create new invoice with current order
@@ -994,13 +1116,13 @@ function confirmOrder() {
                 createdAt: new Date().toISOString(),
                 paymentMethod: null
             };
-            
-            invoices.push(invoice);
-            console.log('🆕 Created new invoice:', invoice.id);
+              invoices.push(invoice);
+            debugLog('🆕 Created new invoice:', invoice.id);
         }
         
         saveInvoices();
-          if (invoice) {
+        
+        if (invoice) {
             closeOrderModal();
             
             // Only add to order history for new invoices, not updates
@@ -1031,18 +1153,18 @@ function confirmOrder() {
             hideSidebarControls();
             
             showNotification(`Đã xác nhận đơn hàng #${invoice.id}`, 'success');
-            console.log('✅ Order confirmed and processed');
+            debugLog('✅ Order confirmed and processed');
         }
         
     } catch (error) {
-        console.error('❌ Error confirming order:', error);
+        debugError('❌ Error confirming order:', error);
         showNotification('Lỗi xác nhận đơn hàng: ' + error.message, 'error');
     }
 }
 
 function openPaymentModal(invoice) {
     try {
-        console.log('💳 Opening payment modal for:', invoice?.id);
+        debugLog('💳 Opening payment modal for:', invoice?.id);
         
         if (!invoice) {
             showNotification('Không tìm thấy hóa đơn', 'error');
@@ -1051,7 +1173,7 @@ function openPaymentModal(invoice) {
         
         const modal = document.getElementById('payment-modal');
         if (!modal) {
-            console.error('❌ Payment modal not found');
+            debugError('❌ Payment modal not found');
             return;
         }
         
@@ -1074,13 +1196,13 @@ function openPaymentModal(invoice) {
         
         setTimeout(() => {
             modal.classList.add('show');
-            console.log('✅ Payment modal show class added');
+            debugLog('✅ Payment modal show class added');
         }, 50);
         
-        console.log('✅ Payment modal opened for invoice:', invoice.id);
+        debugLog('✅ Payment modal opened for invoice:', invoice.id);
         
     } catch (error) {
-        console.error('❌ Error opening payment modal:', error);
+        debugError('❌ Error opening payment modal:', error);
         showNotification('Lỗi mở modal thanh toán: ' + error.message, 'error');
     }
 }
@@ -1091,7 +1213,7 @@ function updatePaymentModalContent(invoice) {
         const invoiceItems = document.getElementById('payment-order-summary');
         const invoiceTotal = document.getElementById('payment-total');
         
-        if (invoiceId) invoiceId.textContent = `Thanh toán hóa đơn #${invoice.id}`;
+        invoiceId?.textContent && (invoiceId.textContent = `Thanh toán hóa đơn #${invoice.id}`);
         
         if (invoiceItems && invoice.items) {
             invoiceItems.innerHTML = invoice.items.map(item => `
@@ -1106,29 +1228,27 @@ function updatePaymentModalContent(invoice) {
             invoiceTotal.textContent = formatPrice(invoice.total);
         }
         
-        console.log('✅ Payment modal content updated');
+        debugLog('✅ Payment modal content updated');
         
     } catch (error) {
-        console.error('❌ Error updating payment modal content:', error);
+        debugError('❌ Error updating payment modal content:', error);
     }
 }
 
 function confirmPayment() {
-    try {
-        console.log('💰 Confirming payment...');
+    try {        debugLog('💰 Confirming payment...');
         
         // Get current invoice being viewed in payment modal
-        const paymentModal = document.getElementById('payment-modal');
         const paymentTitle = document.getElementById('payment-modal-title');
         
         if (!paymentTitle) {
             showNotification('Không thể xác định hóa đơn thanh toán', 'error');
             return;
         }
-        
-        // Extract invoice ID from modal title 
+          // Extract invoice ID from modal title 
         const titleText = paymentTitle.textContent;
-        const invoiceIdMatch = titleText.match(/#(HD\d+)/);
+        const invoiceIdRegex = /#(HD\d+)/;
+        const invoiceIdMatch = invoiceIdRegex.exec(titleText);
         
         if (!invoiceIdMatch) {
             showNotification('Không thể xác định ID hóa đơn', 'error');
@@ -1169,7 +1289,7 @@ function confirmPayment() {
         // Close payment modal
         closePaymentModal();
         
-        console.log('✅ Payment confirmed for invoice:', invoice.id);
+        debugLog('✅ Payment confirmed for invoice:', invoice.id);
         
         // Clear current editing state if this invoice was being edited
         if (currentInvoiceId === invoiceId) {
@@ -1182,14 +1302,14 @@ function confirmPayment() {
         }
         
     } catch (error) {
-        console.error('❌ Error confirming payment:', error);
+        debugError('❌ Error confirming payment:', error);
         showNotification('Lỗi xác nhận thanh toán: ' + error.message, 'error');
     }
 }
 
 function closePaymentModal() {
     try {
-        console.log('❌ Closing payment modal...');
+        debugLog('❌ Closing payment modal...');
         
         const modal = document.getElementById('payment-modal');
         if (modal) {
@@ -1199,10 +1319,10 @@ function closePaymentModal() {
             }, 300);
         }
         
-        console.log('✅ Payment modal closed');
+        debugLog('✅ Payment modal closed');
         
     } catch (error) {
-        console.error('❌ Error closing payment modal:', error);
+        debugError('❌ Error closing payment modal:', error);
     }
 }
 
@@ -1222,7 +1342,7 @@ function showSuccessModal(invoice) {
             }, 3000);
         }
     } catch (error) {
-        console.error('❌ Error showing success modal:', error);
+        debugError('❌ Error showing success modal:', error);
     }
 }
 
@@ -1236,7 +1356,7 @@ function closeSuccessModal() {
             }, 300);
         }
     } catch (error) {
-        console.error('❌ Error closing success modal:', error);
+        debugError('❌ Error closing success modal:', error);
     }
 }
 
@@ -1245,19 +1365,35 @@ function closeSuccessModal() {
 // =============================================================================
 
 function filterMenu(category) {
-    currentCategory = category;
-    window.currentCategory = currentCategory;
-    
-    // Update active category button
-    document.querySelectorAll('.category-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.category === category) {
-            btn.classList.add('active');
+    try {
+        if (!category) {
+            debugError('⚠️ No category provided to filterMenu');
+            category = 'all';
         }
-    });
-    
-    renderMenu();
-    console.log('✅ Menu filtered by category:', category);
+        
+        currentCategory = category;
+        window.currentCategory = currentCategory;
+        
+        // Update active category button
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.category === category) {
+                btn.classList.add('active');
+            }
+        });
+        
+        renderMenu();
+        
+        // Announce to screen reader
+        const categoryName = category === 'all' ? 'tất cả' : category;
+        announceToScreenReader(`Đã chọn danh mục ${categoryName}`);
+        
+        debugLog('✅ Menu filtered by category:', category);
+        
+    } catch (error) {
+        debugError('❌ Error filtering menu:', error);
+        showNotification('Lỗi lọc menu: ' + error.message, 'error');
+    }
 }
 
 // =============================================================================
@@ -1269,23 +1405,21 @@ function updateAdminUI(isAdmin) {
     const menuSection = document.querySelector('.menu-section');
     const adminBtn = document.querySelector('[onclick="toggleAdmin()"]');
     
-    if (isAdmin) {
-        if (adminSection) adminSection.style.display = 'block';
-        if (menuSection) menuSection.style.display = 'none';
-        if (adminBtn) adminBtn.innerHTML = '<i class="fas fa-chart-bar"></i> Quay lại Menu';
+    if (isAdmin) {        adminSection?.style && (adminSection.style.display = 'block');
+        menuSection?.style && (menuSection.style.display = 'none');
+        adminBtn && (adminBtn.innerHTML = '<i class="fas fa-chart-bar"></i> Quay lại Menu');
         displayCurrentShiftData();
         updateShiftInfoDisplay();
-    } else {
-        if (adminSection) adminSection.style.display = 'none';
-        if (menuSection) menuSection.style.display = 'block';
-        if (adminBtn) adminBtn.innerHTML = '<i class="fas fa-chart-bar"></i> Quản lý';
+    } else {        adminSection?.style && (adminSection.style.display = 'none');
+        menuSection?.style && (menuSection.style.display = 'block');
+        adminBtn && (adminBtn.innerHTML = '<i class="fas fa-chart-bar"></i> Quản lý');
     }
 }
 
 function updateShiftInfoDisplay() {
     try {
-        console.log('🔄 Updating shift info display...');
-        console.log('📊 Current shift data:', {
+        debugLog('🔄 Updating shift info display...');
+        debugLog('📊 Current shift data:', {
             shiftStartTime,
             currentShiftEmployee,
             currentShiftNote
@@ -1298,33 +1432,33 @@ function updateShiftInfoDisplay() {
             if (shiftStartTime) {
                 const formattedTime = formatDateTime(shiftStartTime);
                 shiftStartDisplay.textContent = formattedTime;
-                console.log('✅ Shift start time updated:', formattedTime);
+                debugLog('✅ Shift start time updated:', formattedTime);
             } else {
                 shiftStartDisplay.textContent = 'Chưa bắt đầu ca';
-                console.log('⚠️ No shift start time found');
+                debugLog('⚠️ No shift start time found');
             }
         } else {
-            console.error('❌ shift-start-display element not found');
+            debugError('❌ shift-start-display element not found');
         }
         
         if (shiftEmployeeDisplay) {
             if (currentShiftEmployee) {
                 shiftEmployeeDisplay.textContent = currentShiftEmployee;
-                console.log('✅ Shift employee updated:', currentShiftEmployee);
+                debugLog('✅ Shift employee updated:', currentShiftEmployee);
             } else {
                 shiftEmployeeDisplay.textContent = 'Chưa chọn nhân viên';
-                console.log('⚠️ No shift employee found');
+                debugLog('⚠️ No shift employee found');
             }
         } else {
-            console.error('❌ shift-employee-display element not found');
+            debugError('❌ shift-employee-display element not found');
         }
         
         // Update shift status indicator
         updateShiftStatusIndicator();
         
-        console.log('✅ Shift info display updated successfully');
+        debugLog('✅ Shift info display updated successfully');
     } catch (error) {
-        console.error('❌ Error updating shift info display:', error);
+        debugError('❌ Error updating shift info display:', error);
         showNotification('Lỗi cập nhật thông tin ca làm việc: ' + error.message, 'error');
     }
 }
@@ -1347,7 +1481,7 @@ function updateShiftStatusIndicator() {
         });
         
     } catch (error) {
-        console.error('❌ Error updating shift status indicator:', error);
+        debugError('❌ Error updating shift status indicator:', error);
     }
 }
 
@@ -1359,7 +1493,7 @@ function openEmployeeModal() {
         const shiftNoteInput = document.getElementById('shift-note');
         
         if (!modal) {
-            console.error('❌ Employee modal not found');
+            debugError('❌ Employee modal not found');
             return;
         }
         
@@ -1369,23 +1503,21 @@ function openEmployeeModal() {
             modalShiftTime.textContent = formatDateTime(currentTime.toISOString());
         }
         
-        // Clear inputs
-        if (employeeNameInput) employeeNameInput.value = '';
-        if (shiftNoteInput) shiftNoteInput.value = '';
+        // Clear inputs        employeeNameInput?.value && (employeeNameInput.value = '');
+        shiftNoteInput?.value && (shiftNoteInput.value = '');
         
         // Show modal
         modal.style.display = 'flex';
         modal.getBoundingClientRect();
-        
-        setTimeout(() => {
+          setTimeout(() => {
             modal.classList.add('show');
-            if (employeeNameInput) employeeNameInput.focus();
+            employeeNameInput?.focus();
         }, 50);
         
-        console.log('✅ Employee modal opened');
+        debugLog('✅ Employee modal opened');
         
     } catch (error) {
-        console.error('❌ Error opening employee modal:', error);
+        debugError('❌ Error opening employee modal:', error);
         showNotification('Lỗi mở modal nhân viên: ' + error.message, 'error');
     }
 }
@@ -1399,9 +1531,9 @@ function closeEmployeeModal() {
                 modal.style.display = 'none';
             }, 300);
         }
-        console.log('✅ Employee modal closed');
+        debugLog('✅ Employee modal closed');
     } catch (error) {
-        console.error('❌ Error closing employee modal:', error);
+        debugError('❌ Error closing employee modal:', error);
     }
 }
 
@@ -1412,14 +1544,13 @@ function confirmEmployeeInfo() {
         
         const employeeName = employeeNameInput ? employeeNameInput.value.trim() : '';
         const shiftNote = shiftNoteInput ? shiftNoteInput.value.trim() : '';
-        
-        if (!employeeName) {
+          if (!employeeName) {
             showNotification('Vui lòng nhập tên nhân viên', 'warning');
-            if (employeeNameInput) employeeNameInput.focus();
+            employeeNameInput?.focus();
             return;
         }
         
-        console.log('👤 Employee info confirmed:', { employeeName, shiftNote });
+        debugLog('👤 Employee info confirmed:', { employeeName, shiftNote });
         
         // Close modal first
         closeEmployeeModal();
@@ -1430,7 +1561,7 @@ function confirmEmployeeInfo() {
         }, 100);
         
     } catch (error) {
-        console.error('❌ Error confirming employee info:', error);
+        debugError('❌ Error confirming employee info:', error);
         showNotification('Lỗi xác nhận thông tin nhân viên: ' + error.message, 'error');
     }
 }
@@ -1440,9 +1571,9 @@ function toggleAdmin() {
         isAdminMode = !isAdminMode;
         window.isAdminMode = isAdminMode;
         updateAdminUI(isAdminMode);
-        console.log('✅ Admin mode toggled:', isAdminMode ? 'ON' : 'OFF');
+        debugLog('✅ Admin mode toggled:', isAdminMode ? 'ON' : 'OFF');
     } catch (error) {
-        console.error('❌ Error toggling admin mode:', error);
+        debugError('❌ Error toggling admin mode:', error);
         showNotification('Lỗi chuyển đổi chế độ admin: ' + error.message, 'error');
     }
 }
@@ -1519,10 +1650,10 @@ function proceedWithNewShift(employeeName, shiftNote) {
             }
             
             showNotification(`Đã bắt đầu ca mới với nhân viên ${employeeName}!`, 'success');
-            console.log('✅ New shift started at:', new Date(shiftStartTime).toLocaleString(), 'Employee:', employeeName);
+            debugLog(`✅ New shift started at: ${new Date(shiftStartTime).toLocaleString()}, Employee: ${employeeName}`);
             
         } catch (error) {
-            console.error('❌ Error starting new shift:', error);
+            debugError('❌ Error starting new shift:', error);
             showNotification('Lỗi bắt đầu ca mới: ' + error.message, 'error');
         }
     }
@@ -1551,23 +1682,62 @@ function endShift() {
         
         setTimeout(() => {
             modal.classList.add('show');
-            console.log('✅ End shift modal show class added');
+            debugLog('✅ End shift modal show class added');
         }, 50);
     }
 }
 
 function getCurrentShiftOrders() {
-    if (!orderHistory || orderHistory.length === 0) {
-        orderHistory = loadOrderHistory();
+    try {
+        // Ensure order history is loaded
+        if (!orderHistory || orderHistory.length === 0) {
+            orderHistory = loadOrderHistory();
+        }
+        
+        // Validate shift start time
+        if (!shiftStartTime) {
+            debugError('⚠️ No shift start time found');
+            return [];
+        }
+        
+        let currentShiftStart;
+        try {
+            currentShiftStart = new Date(shiftStartTime);
+            if (isNaN(currentShiftStart.getTime())) {
+                debugError('❌ Invalid shift start time:', shiftStartTime);
+                return [];
+            }
+        } catch (dateError) {
+            debugError('❌ Error parsing shift start time:', dateError);
+            return [];
+        }
+        
+        // Filter orders for current shift
+        const shiftOrders = orderHistory.filter(order => {
+            if (!order || !order.timestamp) {
+                return false;
+            }
+            
+            try {
+                const orderDate = new Date(order.timestamp);
+                if (isNaN(orderDate.getTime())) {
+                    debugError('⚠️ Invalid order timestamp:', order.timestamp);
+                    return false;
+                }
+                return orderDate >= currentShiftStart;
+            } catch (error) {
+                debugError(`⚠️ Error processing order timestamp: ${order.timestamp}`, error);
+                return false;
+            }
+        });
+        
+        debugLog(`📊 Found ${shiftOrders.length} orders in current shift`);
+        return shiftOrders;
+        
+    } catch (error) {
+        debugError('❌ Error getting current shift orders:', error);
+        return [];
     }
-    
-    const currentShiftStart = new Date(shiftStartTime);
-    
-    return orderHistory.filter(order => {
-        if (!order.timestamp) return false;
-        const orderDate = new Date(order.timestamp);
-        return orderDate >= currentShiftStart;
-    });
 }
 
 function displayCurrentShiftData() {
@@ -1599,16 +1769,14 @@ function updateCurrentShiftSummary(orders) {
         if (count > maxCount) {
             maxCount = count;
             bestSeller = `${itemName} (${count})`;
-        }
-    }
+        }    }
     
     const totalOrdersEl = document.getElementById('current-shift-orders');
     const totalRevenueEl = document.getElementById('current-shift-revenue');
     const bestSellerEl = document.getElementById('current-shift-bestseller');
-    
-    if (totalOrdersEl) totalOrdersEl.textContent = totalOrders;
-    if (totalRevenueEl) totalRevenueEl.textContent = formatPrice(totalRevenue);
-    if (bestSellerEl) bestSellerEl.textContent = bestSeller;
+      totalOrdersEl && (totalOrdersEl.textContent = totalOrders);
+    totalRevenueEl && (totalRevenueEl.textContent = formatPrice(totalRevenue));
+    bestSellerEl && (bestSellerEl.textContent = bestSeller);
 }
 
 function displayCurrentShiftOrders(orders) {
@@ -1649,11 +1817,10 @@ function populateEndShiftModal(orders) {
         
         const endTime = new Date().toISOString();
         const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
-        
-        if (startTimeEl) startTimeEl.textContent = formatDateTime(shiftStartTime);
-        if (endTimeEl) endTimeEl.textContent = formatDateTime(endTime);
-        if (totalOrdersEl) totalOrdersEl.textContent = orders.length;
-        if (totalRevenueEl) totalRevenueEl.textContent = formatPrice(totalRevenue);
+          startTimeEl && (startTimeEl.textContent = formatDateTime(shiftStartTime));
+        endTimeEl && (endTimeEl.textContent = formatDateTime(endTime));
+        totalOrdersEl && (totalOrdersEl.textContent = orders.length);
+        totalRevenueEl && (totalRevenueEl.textContent = formatPrice(totalRevenue));
         
         // Calculate best seller
         const itemCount = {};
@@ -1676,7 +1843,7 @@ function populateEndShiftModal(orders) {
             }
         }
         
-        if (bestSellerEl) bestSellerEl.textContent = bestSeller;
+        bestSellerEl && (bestSellerEl.textContent = bestSeller);
         
         // Populate orders details
         if (ordersDetailsEl) {
@@ -1690,7 +1857,7 @@ function populateEndShiftModal(orders) {
         }
         
     } catch (error) {
-        console.error('❌ Error populating end shift modal:', error);
+        debugError('❌ Error populating end shift modal:', error);
     }
 }
 
@@ -1724,7 +1891,7 @@ function confirmEndShift() {
         }
         
     } catch (error) {
-        console.error('❌ Error confirming end shift:', error);
+        debugError('❌ Error confirming end shift:', error);
         showNotification('Lỗi kết thúc ca: ' + error.message, 'error');
     }
 }
@@ -1739,7 +1906,7 @@ function closeEndShiftModal() {
             }, 300);
         }
     } catch (error) {
-        console.error('❌ Error closing end shift modal:', error);
+        debugError('❌ Error closing end shift modal:', error);
     }
 }
 
@@ -1749,26 +1916,26 @@ function closeEndShiftModal() {
 
 function toggleSidebar() {
     try {
-        console.log('🔄 Toggle sidebar called');
+        debugLog('🔄 Toggle sidebar called');
         const sidebar = document.getElementById('sidebar');
         if (!sidebar) {
-            console.error('❌ Sidebar element not found');
+            debugError('❌ Sidebar element not found');
             showNotification('Lỗi: Không tìm thấy sidebar', 'error');
             return;
         }
         
         const isCurrentlyCollapsed = sidebar.classList.contains('collapsed');
-        console.log('📱 Sidebar current state:', isCurrentlyCollapsed ? 'collapsed' : 'expanded');
+        debugLog('📱 Sidebar current state:', isCurrentlyCollapsed ? 'collapsed' : 'expanded');
         
         // Force toggle state
         if (isCurrentlyCollapsed) {
             sidebar.classList.remove('collapsed');
             sidebar.style.transform = 'translateX(0)';
-            console.log('✅ Sidebar expanding...');
+            debugLog('✅ Sidebar expanding...');
         } else {
             sidebar.classList.add('collapsed');
             sidebar.style.transform = 'translateX(100%)';
-            console.log('✅ Sidebar collapsing...');
+            debugLog('✅ Sidebar collapsing...');
         }
         
         // Update close button icon
@@ -1776,18 +1943,18 @@ function toggleSidebar() {
         if (closeBtn) {
             if (sidebar.classList.contains('collapsed')) {
                 closeBtn.className = 'fas fa-chevron-left';
-                console.log('✅ Icon set to chevron-left (collapsed)');
+                debugLog('✅ Icon set to chevron-left (collapsed)');
             } else {
                 closeBtn.className = 'fas fa-chevron-right';
-                console.log('✅ Icon set to chevron-right (expanded)');
+                debugLog('✅ Icon set to chevron-right (expanded)');
             }
         } else {
-            console.warn('⚠️ Close button not found');
+            debugError('⚠️ Close button not found');
         }
         
         // Force update invoice display when sidebar opens
         if (!sidebar.classList.contains('collapsed')) {
-            console.log('🔄 Sidebar opened - updating invoice display');
+            debugLog('🔄 Sidebar opened - updating invoice display');
             setTimeout(() => {
                 updateInvoiceDisplay();
                 updateInvoiceCount();
@@ -1797,7 +1964,7 @@ function toggleSidebar() {
         // Handle mobile overlay
         const isMobile = window.innerWidth <= 768;
         if (isMobile && !sidebar.classList.contains('collapsed')) {
-            console.log('📱 Mobile mode - setting up overlay click');
+            debugLog('📱 Mobile mode - setting up overlay click');
             
             // Add backdrop click handler
             const handleBackdropClick = (e) => {
@@ -1809,7 +1976,7 @@ function toggleSidebar() {
                     sidebar.style.transform = 'translateX(100%)';
                     if (closeBtn) closeBtn.className = 'fas fa-chevron-left';
                     document.removeEventListener('click', handleBackdropClick);
-                    console.log('✅ Sidebar closed by backdrop click');
+                    debugLog('✅ Sidebar closed by backdrop click');
                 }
             };
             
@@ -1821,13 +1988,13 @@ function toggleSidebar() {
         
         // Announce to screen reader
         const status = sidebar.classList.contains('collapsed') ? 'đã đóng' : 'đã mở';
-        console.log(`📢 Sidebar ${status}`);
+        debugLog(`📢 Sidebar ${status}`);
         
         // Visual feedback notification
         showNotification(`Sidebar ${status}`, 'info');
         
     } catch (error) {
-        console.error('❌ Error toggling sidebar:', error);
+        debugError('❌ Error toggling sidebar:', error);
         showNotification('Lỗi thao tác sidebar: ' + error.message, 'error');
     }
 }
@@ -1838,7 +2005,7 @@ function toggleSidebar() {
 
 function initializeApp() {
     try {
-        console.log('🚀 Initializing BalanCoffee app...');
+        debugLog('🚀 Initializing BalanCoffee app...');
         
         // Load data
         loadInvoices();
@@ -1849,23 +2016,23 @@ function initializeApp() {
         // Ensure sidebar starts collapsed and fix any issues
         const sidebar = document.getElementById('sidebar');
         if (sidebar) {
-            console.log('🔧 Setting up sidebar initial state...');
+            debugLog('🔧 Setting up sidebar initial state...');
             sidebar.classList.add('collapsed');
             sidebar.style.transform = 'translateX(100%)';
             
             const closeBtn = sidebar.querySelector('.close-sidebar i');
             if (closeBtn) {
                 closeBtn.className = 'fas fa-chevron-left';
-                console.log('✅ Sidebar close button icon set');
+                debugLog('✅ Sidebar close button icon set');
             }
             
             // Test sidebar functionality
-            console.log('🧪 Testing sidebar...');
-            console.log('Sidebar element found:', !!sidebar);
-            console.log('Sidebar classes:', sidebar.className);
-            console.log('Sidebar transform:', sidebar.style.transform);
+            debugLog('🧪 Testing sidebar...');
+            debugLog('Sidebar element found:', !!sidebar);
+            debugLog('Sidebar classes:', sidebar.className);
+            debugLog('Sidebar transform:', sidebar.style.transform);
         } else {
-            console.error('❌ Sidebar element not found during initialization');
+            debugError('❌ Sidebar element not found during initialization');
         }
         
         // Update UI
@@ -1883,26 +2050,26 @@ function initializeApp() {
         
         // Add debug sidebar test button (for development)
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            console.log('🔧 Development mode - adding debug controls');
+            debugLog('🔧 Development mode - adding debug controls');
             window.debugSidebar = function() {
                 const sidebar = document.getElementById('sidebar');
-                console.log('=== SIDEBAR DEBUG ===');
-                console.log('Element exists:', !!sidebar);
+                debugLog('=== SIDEBAR DEBUG ===');
+                debugLog('Element exists:', !!sidebar);
                 if (sidebar) {
-                    console.log('Classes:', sidebar.className);
-                    console.log('Style transform:', sidebar.style.transform);
-                    console.log('Computed transform:', window.getComputedStyle(sidebar).transform);
-                    console.log('Width:', window.getComputedStyle(sidebar).width);
-                    console.log('Z-index:', window.getComputedStyle(sidebar).zIndex);
+                    debugLog('Classes:', sidebar.className);
+                    debugLog('Style transform:', sidebar.style.transform);
+                    debugLog('Computed transform:', window.getComputedStyle(sidebar).transform);
+                    debugLog('Width:', window.getComputedStyle(sidebar).width);
+                    debugLog('Z-index:', window.getComputedStyle(sidebar).zIndex);
                 }
-                console.log('==================');
+                debugLog('==================');
             };
         }
         
-        console.log('✅ BalanCoffee app initialized successfully');
+        debugLog('✅ BalanCoffee app initialized successfully');
         
     } catch (error) {
-        console.error('❌ Error initializing app:', error);
+        debugError('❌ Error initializing app:', error);
         showNotification('Lỗi khởi tạo ứng dụng: ' + error.message, 'error');
     }
 }
@@ -1958,7 +2125,7 @@ window.updateShiftInfoDisplay = updateShiftInfoDisplay;
 
 function finishEditInvoice(invoiceId) {
     try {
-        console.log('✅ Finishing edit for invoice:', invoiceId);
+        debugLog('✅ Finishing edit for invoice:', invoiceId);
         
         const invoice = invoices.find(inv => inv.id === invoiceId);
         if (!invoice) {
@@ -1972,8 +2139,8 @@ function finishEditInvoice(invoiceId) {
             invoice.total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             invoice.updatedAt = new Date().toISOString();
             
-            console.log('📝 Updated invoice items:', invoice.items);
-            console.log('💰 Updated invoice total:', invoice.total);
+            debugLog('📝 Updated invoice items:', invoice.items);
+            debugLog('💰 Updated invoice total:', invoice.total);
         }
         
         // Remove editing state
@@ -1995,7 +2162,7 @@ function finishEditInvoice(invoiceId) {
         showNotification(`Đã hoàn tất chỉnh sửa hóa đơn #${invoiceId}`, 'success');
         
     } catch (error) {
-        console.error('❌ Error finishing edit invoice:', error);
+        debugError('❌ Error finishing edit invoice:', error);
         showNotification('Lỗi hoàn tất chỉnh sửa: ' + error.message, 'error');
     }
 }
@@ -2010,7 +2177,7 @@ function finishEditInvoice(invoiceId) {
 function initializeNetworkMonitoring() {
     try {
         // Always assume online - no offline fallback
-        console.log('✅ Online-only system initialized - requires internet connection');
+        debugLog('✅ Online-only system initialized - requires internet connection');
         
         // Optional: Check if user is online and show warning if not
         if (!navigator.onLine) {
@@ -2018,7 +2185,7 @@ function initializeNetworkMonitoring() {
         }
         
     } catch (error) {
-        console.error('❌ Error initializing network monitoring:', error);
+        debugError('❌ Error initializing network monitoring:', error);
     }
 }
 
@@ -2030,9 +2197,9 @@ function initializeTouchGestures() {
         document.addEventListener('touchmove', handleTouchMove, false);
         document.addEventListener('touchend', handleTouchEnd, false);
         
-        console.log('✅ Touch gestures initialized');
+        debugLog('✅ Touch gestures initialized');
     } catch (error) {
-        console.error('❌ Error initializing touch gestures:', error);
+        debugError('❌ Error initializing touch gestures:', error);
     }
 }
 
@@ -2079,7 +2246,7 @@ function handleTouchEnd(event) {
             const modalContent = modal.querySelector('.modal-content');
             if (modalContent) {
                 const rect = modalContent.getBoundingClientRect();
-                  if (touchStartY < rect.top + 50) {
+                if (touchStartY < rect.top + 50) {
                     if (modal.id === 'payment-modal') closePaymentModal();
                     else if (modal.id === 'order-modal') closeOrderModal();
                     else if (modal.id === 'employee-modal') closeEmployeeModal();
@@ -2107,7 +2274,7 @@ function initializePerformanceMonitoring() {
         // Measure initial load time
         window.addEventListener('load', () => {
             performanceMetrics.loadTime = performance.now();
-            console.log(`📊 App load time: ${performanceMetrics.loadTime.toFixed(2)}ms`);
+            debugLog(`📊 App load time: ${performanceMetrics.loadTime.toFixed(2)}ms`);
         });
         
         // Monitor large operations
@@ -2117,15 +2284,15 @@ function initializePerformanceMonitoring() {
             originalRenderMenu.apply(this, arguments);
             const endTime = performance.now();
             performanceMetrics.renderTime = endTime - startTime;
-            console.log(`📊 Menu render time: ${performanceMetrics.renderTime.toFixed(2)}ms`);
+            debugLog(`📊 Menu render time: ${performanceMetrics.renderTime.toFixed(2)}ms`);
         };
         
         // Store metrics globally for debugging
         window.performanceMetrics = performanceMetrics;
         
-        console.log('✅ Performance monitoring initialized');
+        debugLog('✅ Performance monitoring initialized');
     } catch (error) {
-        console.error('❌ Error initializing performance monitoring:', error);
+        debugError('❌ Error initializing performance monitoring:', error);
     }
 }
 
@@ -2164,14 +2331,15 @@ function initializeAutoSave() {
         autoSaveInterval = setInterval(() => {
             if (currentOrder.length > 0) {
                 localStorage.setItem('balancoffee_temp_order', JSON.stringify(currentOrder));
-                console.log('💾 Auto-saved current order');
+                debugLog('💾 Auto-saved current order');
             }
         }, 30000);
         
         // Load temp order on startup
         const tempOrder = localStorage.getItem('balancoffee_temp_order');
         if (tempOrder) {
-            try {                const parsedOrder = JSON.parse(tempOrder);
+            try {
+                const parsedOrder = JSON.parse(tempOrder);
                 if (validateOrderData(parsedOrder) && parsedOrder.length > 0) {
                     const restore = confirm('Phát hiện đơn hàng chưa hoàn thành. Bạn có muốn khôi phục không?');
                     if (restore) {
@@ -2187,9 +2355,9 @@ function initializeAutoSave() {
             }
         }
         
-        console.log('✅ Auto-save initialized');
+        debugLog('✅ Auto-save initialized');
     } catch (error) {
-        console.error('❌ Error initializing auto-save:', error);
+        debugError('❌ Error initializing auto-save:', error);
     }
 }
 
@@ -2211,11 +2379,11 @@ function initializeKeyboardShortcuts() {
                     showNotification('Đơn hàng trống', 'warning');
                 }
             }
-            
-            // Ctrl/Cmd + S: Toggle sidebar
+              // Ctrl/Cmd + S: Toggle sidebar
             if ((event.ctrlKey || event.metaKey) && event.key === 's') {
                 event.preventDefault();
-                toggleSidebar();            }
+                toggleSidebar();
+            }
             
             // Escape: Close modals
             if (event.key === 'Escape') {
@@ -2236,9 +2404,9 @@ function initializeKeyboardShortcuts() {
             }
         });
         
-        console.log('✅ Keyboard shortcuts initialized');
+        debugLog('✅ Keyboard shortcuts initialized');
     } catch (error) {
-        console.error('❌ Error initializing keyboard shortcuts:', error);
+        debugError('❌ Error initializing keyboard shortcuts:', error);
     }
 }
 
@@ -2263,9 +2431,9 @@ function initializeAccessibility() {
             document.body.classList.add('reduced-motion');
         }
         
-        console.log('✅ Accessibility features initialized');
+        debugLog('✅ Accessibility features initialized');
     } catch (error) {
-        console.error('❌ Error initializing accessibility:', error);
+        debugError('❌ Error initializing accessibility:', error);
     }
 }
 
@@ -2279,7 +2447,7 @@ function announceToScreenReader(message) {
             }, 1000);
         }
     } catch (error) {
-        console.error('❌ Error announcing to screen reader:', error);
+        debugError('❌ Error announcing to screen reader:', error);
     }
 }
 
@@ -2313,18 +2481,18 @@ function throttle(func, limit) {
 function initializeErrorHandling() {
     try {
         window.addEventListener('error', (event) => {
-            console.error('🚨 Unhandled error:', event.error);
+            debugError('🚨 Unhandled error:', event.error);
             showNotification('Đã xảy ra lỗi không mong muốn. Vui lòng tải lại trang.', 'error');
         });
         
         window.addEventListener('unhandledrejection', (event) => {
-            console.error('🚨 Unhandled promise rejection:', event.reason);
+            debugError('🚨 Unhandled promise rejection:', event.reason);
             showNotification('Đã xảy ra lỗi hệ thống. Vui lòng thử lại.', 'error');
         });
         
-        console.log('✅ Error handling initialized');
+        debugLog('✅ Error handling initialized');
     } catch (error) {
-        console.error('❌ Error initializing error handling:', error);
+        debugError('❌ Error initializing error handling:', error);
     }
 }
 
@@ -2334,8 +2502,7 @@ function initializeErrorHandling() {
 
 function initializeAdvancedFeatures() {
     try {
-        console.log('🚀 Initializing advanced features...');
-          // Initialize all advanced features
+        debugLog('🚀 Initializing advanced features...');        // Initialize all advanced features
         initializeNetworkMonitoring();
         initializeTouchGestures();
         initializePerformanceMonitoring();
@@ -2343,7 +2510,8 @@ function initializeAdvancedFeatures() {
         initializeKeyboardShortcuts();
         initializeAccessibility();
         initializeErrorHandling();
-          // Setup loading screen removal
+        
+        // Setup loading screen removal
         setTimeout(() => {
             const loadingScreen = document.getElementById('loading-screen');
             const appContainer = document.getElementById('app-container');
@@ -2358,10 +2526,10 @@ function initializeAdvancedFeatures() {
             }
         }, 2000);
         
-        console.log('✅ Advanced features initialized successfully');
+        debugLog('✅ Advanced features initialized successfully');
         
     } catch (error) {
-        console.error('❌ Error initializing advanced features:', error);
+        debugError('❌ Error initializing advanced features:', error);
         showNotification('Một số tính năng nâng cao không thể khởi tạo', 'warning');
     }
 }
@@ -2371,5 +2539,24 @@ window.validateOrderData = validateOrderData;
 window.sanitizeInput = sanitizeInput;
 window.announceToScreenReader = announceToScreenReader;
 window.initializeAdvancedFeatures = initializeAdvancedFeatures;
+window.debugLog = debugLog;
+window.debugError = debugError;
+window.DEBUG_MODE = DEBUG_MODE;
 
-console.log('📋 BalanCoffee script loaded - Version 8.5 Advanced Features Complete');
+// Debug helper for development
+if (DEBUG_MODE) {
+    window.debugApp = function() {
+        debugLog('=== BALANCOFFEE DEBUG INFO ===');
+        debugLog('Current Order:', currentOrder);
+        debugLog('Invoices:', invoices.length);
+        debugLog('Order History:', orderHistory.length);
+        debugLog('Shift Start Time:', shiftStartTime);
+        debugLog('Current Invoice ID:', currentInvoiceId);
+        debugLog('Admin Mode:', isAdminMode);
+        debugLog('Current Category:', currentCategory);
+        debugLog('Current Shift Employee:', currentShiftEmployee);
+        debugLog('==============================');
+    };
+}
+
+debugLog('📋 BalanCoffee script loaded - Version 8.6 Production Optimized');
