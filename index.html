@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>BalanCoffee - Hệ Thống POS Hiện Đại</title>
     <meta name="description" content="Hệ thống POS quản lý đơn hàng và thanh toán cho quán cà phê BalanCoffee - Giao diện hiện đại, responsive và thân thiện người dùng">
     <meta name="theme-color" content="#6F4E37">
@@ -83,14 +83,51 @@
                             <span id="today-revenue">0₫</span>
                         </div>
                     </div>
-                    
-                    <!-- Action Buttons -->
+                      <!-- Action Buttons -->
                     <nav class="header-actions" role="navigation" aria-label="Điều hướng chính">
-                        <button class="btn btn-secondary header-btn" onclick="toggleAdminMode()" 
-                                aria-label="Chuyển đổi chế độ quản lý" title="Quản lý ca làm việc">
-                            <i class="fas fa-chart-bar" aria-hidden="true"></i>
-                            <span class="btn-text">Quản lý</span>
-                        </button>
+                        <!-- Admin Dropdown -->
+                        <div class="admin-dropdown" id="admin-dropdown">
+                            <button class="btn btn-secondary header-btn admin-dropdown-toggle" onclick="toggleAdminDropdown()" 
+                                    aria-label="Menu quản lý" title="Quản lý ca làm việc và hệ thống">
+                                <i class="fas fa-cog" aria-hidden="true"></i>
+                                <span class="btn-text">Quản lý</span>
+                                <i class="fas fa-chevron-down dropdown-arrow" aria-hidden="true"></i>
+                            </button>
+                            <div class="admin-dropdown-menu" id="admin-dropdown-menu">
+                                <div class="dropdown-section">
+                                    <h4>Ca làm việc</h4>
+                                    <button class="dropdown-item" onclick="startNewShift(); closeAdminDropdown()">
+                                        <i class="fas fa-play" aria-hidden="true"></i>
+                                        <span>Bắt đầu ca mới</span>
+                                    </button>
+                                    <button class="dropdown-item" onclick="viewCurrentShift(); closeAdminDropdown()">
+                                        <i class="fas fa-clock" aria-hidden="true"></i>
+                                        <span>Xem ca hiện tại</span>
+                                    </button>
+                                    <button class="dropdown-item" onclick="pauseShift(); closeAdminDropdown()">
+                                        <i class="fas fa-pause" aria-hidden="true"></i>
+                                        <span>Tạm dừng ca</span>
+                                    </button>
+                                    <button class="dropdown-item" onclick="endShift(); closeAdminDropdown()">
+                                        <i class="fas fa-stop" aria-hidden="true"></i>
+                                        <span>Kết thúc ca</span>
+                                    </button>
+                                </div>
+                                <div class="dropdown-divider"></div>
+                                <div class="dropdown-section">
+                                    <h4>Dữ liệu</h4>
+                                    <button class="dropdown-item" onclick="exportData(); closeAdminDropdown()">
+                                        <i class="fas fa-download" aria-hidden="true"></i>
+                                        <span>Xuất dữ liệu</span>
+                                    </button>
+                                    <button class="dropdown-item danger" onclick="clearAllInvoices(); closeAdminDropdown()">
+                                        <i class="fas fa-trash" aria-hidden="true"></i>
+                                        <span>Xóa tất cả hóa đơn</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <button class="btn btn-primary header-btn cart-toggle" onclick="toggleSidebar()" 
                                 aria-label="Hiển thị danh sách hóa đơn" title="Xem hóa đơn chờ thanh toán">
                             <i class="fas fa-receipt" aria-hidden="true"></i>
@@ -106,17 +143,6 @@
             <section class="menu-section" aria-label="Danh sách đồ uống">
                 <div class="section-header">
                     <h2>Menu Đồ Uống</h2>
-                    <div class="section-actions">
-                        <button class="btn btn-outline search-btn" onclick="toggleSearch()" 
-                                aria-label="Tìm kiếm sản phẩm">
-                            <i class="fas fa-search"></i>
-                        </button>
-                        <div class="search-container" id="search-container" style="display: none;">
-                            <input type="text" class="search-input" id="menu-search" 
-                                   placeholder="Tìm kiếm món..."
-                                   onkeyup="filterMenuBySearch(this.value)">
-                        </div>
-                    </div>
                 </div>
                 
                 <!-- Enhanced Menu Categories -->
@@ -160,149 +186,7 @@
                         <div class="loading-spinner-small"></div>
                         <p>Đang tải menu...</p>
                     </div>
-                </div>
-            </section>            <!-- Enhanced Admin Section -->
-            <section class="admin-section" id="admin-section" style="display: none;">
-                <div class="admin-header">
-                    <h2>
-                        <i class="fas fa-chart-line"></i>
-                        Quản Lý Ca Làm Việc
-                    </h2>
-                    <div class="admin-actions">
-                        <button class="btn btn-outline" onclick="exportData()">
-                            <i class="fas fa-download"></i>
-                            Xuất dữ liệu
-                        </button>
-                        <button class="btn btn-danger" onclick="clearAllInvoices()">
-                            <i class="fas fa-trash"></i>
-                            Xóa tất cả
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Enhanced Current Shift Info -->
-                <div class="current-shift-info">
-                    <div class="shift-card">
-                        <div class="shift-header">
-                            <h3>
-                                <i class="fas fa-clock"></i>
-                                Ca Làm Việc Hiện Tại
-                            </h3>
-                            <div class="shift-status" id="shift-status">
-                                <span class="status-indicator"></span>
-                                <span class="status-text">Chưa bắt đầu</span>
-                            </div>
-                        </div>
-                        <div class="shift-details">
-                            <div class="detail-item">
-                                <i class="fas fa-play-circle"></i>
-                                <span>Bắt đầu: <strong id="shift-start-display">--</strong></span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="fas fa-user"></i>
-                                <span>Nhân viên: <strong id="shift-employee-display">--</strong></span>
-                            </div>
-                            <div class="detail-item">
-                                <i class="fas fa-stopwatch"></i>
-                                <span>Thời gian: <strong id="shift-duration">--</strong></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Enhanced Admin Controls -->
-                <div class="admin-controls">
-                    <div class="control-group">
-                        <h4>Điều khiển ca làm việc</h4>
-                        <div class="shift-controls">
-                            <button class="btn btn-success" onclick="startNewShift()">
-                                <i class="fas fa-play"></i>
-                                Bắt đầu ca mới
-                            </button>
-                            <button class="btn btn-primary" onclick="viewCurrentShift()">
-                                <i class="fas fa-eye"></i>
-                                Xem ca hiện tại
-                            </button>
-                            <button class="btn btn-warning" onclick="pauseShift()">
-                                <i class="fas fa-pause"></i>
-                                Tạm dừng
-                            </button>
-                            <button class="btn btn-danger" onclick="endShift()">
-                                <i class="fas fa-stop"></i>
-                                Kết thúc ca
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Enhanced Summary Cards -->
-                <div class="summary-cards">
-                    <div class="summary-card orders">
-                        <div class="card-icon">
-                            <i class="fas fa-shopping-cart"></i>
-                        </div>
-                        <div class="card-content">
-                            <h3>Đơn hàng trong ca</h3>
-                            <p class="card-value" id="current-shift-orders">0</p>
-                            <span class="card-subtitle">đơn hàng</span>
-                        </div>
-                    </div>
-                    <div class="summary-card revenue">
-                        <div class="card-icon">
-                            <i class="fas fa-coins"></i>
-                        </div>
-                        <div class="card-content">
-                            <h3>Doanh thu trong ca</h3>
-                            <p class="card-value" id="current-shift-revenue">0₫</p>
-                            <span class="card-subtitle">VND</span>
-                        </div>
-                    </div>
-                    <div class="summary-card bestseller">
-                        <div class="card-icon">
-                            <i class="fas fa-star"></i>
-                        </div>
-                        <div class="card-content">
-                            <h3>Món bán chạy</h3>
-                            <p class="card-value" id="current-shift-bestseller">-</p>
-                            <span class="card-subtitle">trong ca này</span>
-                        </div>
-                    </div>
-                    <div class="summary-card average">
-                        <div class="card-icon">
-                            <i class="fas fa-chart-bar"></i>
-                        </div>
-                        <div class="card-content">
-                            <h3>Trung bình/đơn</h3>
-                            <p class="card-value" id="average-order-value">0₫</p>
-                            <span class="card-subtitle">VND</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Enhanced Shift History -->
-                <div class="current-shift-history">
-                    <div class="history-header">
-                        <h3>
-                            <i class="fas fa-history"></i>
-                            Đơn hàng trong ca hiện tại
-                        </h3>
-                        <div class="history-filters">
-                            <button class="filter-btn active" data-filter="all">Tất cả</button>
-                            <button class="filter-btn" data-filter="recent">Gần đây</button>
-                            <button class="filter-btn" data-filter="completed">Hoàn thành</button>
-                        </div>
-                    </div>
-                    <div class="shift-orders-container">
-                        <div id="current-shift-list" class="shift-orders-list">
-                            <!-- Current shift orders will be populated here -->
-                            <div class="empty-state">
-                                <i class="fas fa-inbox"></i>
-                                <p>Chưa có đơn hàng nào trong ca này</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                </div>            </section>
         </main><!-- Sidebar -->
         <aside class="sidebar collapsed" id="sidebar" aria-label="Quản lý hóa đơn">
             <!-- Mobile Backdrop -->
@@ -479,10 +363,9 @@
                             <div class="summary-item">
                                 <span class="label">Món bán chạy nhất:</span>
                                 <span class="value" id="shift-bestseller-item">-</span>
-                            </div>
-                        </div>
+                            </div>                        </div>
                         
-                        <div class="shift-details">
+                        <div class="shift-modal-details">
                             <h5>Chi tiết các đơn hàng:</h5>
                             <div class="shift-orders-list" id="shift-orders-details">
                                 <!-- Shift orders will be populated here -->
@@ -528,7 +411,24 @@
                 </button>
             </div>
         </div>
-    </div>    <script src="data.js"></script>
+    </div>    <!-- Toast Container for Mobile Notifications -->
+    <div class="toast-container"></div>
+    
+    <!-- Offline Indicator -->
+    <div class="offline-indicator">
+        <i class="fas fa-wifi-slash" aria-hidden="true"></i>
+        Không có kết nối internet
+    </div>
+    
+    <!-- Connection Status (for header) -->
+    <div class="connection-status online" style="display: none;">
+        <span class="connection-indicator"></span>
+        Đã kết nối
+    </div>
+
+    <!-- Scripts -->
+    <script src="data.js"></script>
+    <script src="mobile-helpers.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
