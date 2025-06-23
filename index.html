@@ -127,14 +127,14 @@
                     </div><!-- Action Buttons -->
                     <nav class="header-actions" role="navigation" aria-label="Điều hướng chính">
                         <!-- Admin Dropdown -->
-                        <div class="admin-dropdown" id="admin-dropdown">
+                <div class="admin-dropdown">
                             <button class="btn btn-secondary header-btn admin-dropdown-btn admin-dropdown-toggle" onclick="toggleAdminDropdown()" 
                                     aria-label="Menu quản lý" title="Quản lý ca làm việc và hệ thống" aria-expanded="false">
                                 <i class="fas fa-cog" aria-hidden="true"></i>
                                 <span class="btn-text">Quản lý</span>
                                 <i class="fas fa-chevron-down dropdown-arrow" aria-hidden="true"></i>
                             </button>
-                            <div class="admin-dropdown-menu dropdown" id="admin-dropdown-menu" aria-hidden="true">
+                            <div class="admin-dropdown-menu dropdown" id="admin-dropdown" aria-hidden="true">
                                 <div class="dropdown-section">
                                     <h4>Ca làm việc</h4>
                                     <button class="dropdown-item" onclick="startNewShift(); closeAdminDropdown()">
@@ -226,12 +226,13 @@
                         <div class="loading-spinner-small"></div>
                         <p>Đang tải menu...</p>
                     </div>
-                </div>            </section>
-        </main>        <!-- Sidebar -->
+                </div>            </section>        </main>
+        
+        <!-- Mobile Backdrop -->
+        <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()" onkeydown="handleBackdropKeydown(event)" aria-hidden="true" tabindex="-1"></div>
+        
+        <!-- Sidebar -->
         <aside class="sidebar collapsed" id="sidebar" aria-label="Quản lý hóa đơn" aria-hidden="true">
-            <!-- Mobile Backdrop -->
-            <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()" onkeydown="handleBackdropKeydown(event)" aria-hidden="true" tabindex="-1"></div>
-            
             <div class="sidebar-content">
                 <div class="sidebar-header">
                     <h3>Danh sách hóa đơn</h3>                    <button class="close-sidebar" onclick="toggleSidebar()" aria-label="Đóng danh sách hóa đơn" title="Đóng">
@@ -464,10 +465,24 @@
     <div class="connection-status online" style="display: none;">
         <span class="connection-indicator"></span>
         Đã kết nối
-    </div>    <!-- Scripts -->
+    </div>    <!-- Scripts - Load in dependency order -->
+    <!-- Core modules first -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    
+    <!-- Feature modules -->
+    <script src="js/ui-manager.js"></script>
+    <script src="js/data-manager.js"></script>
+    <script src="js/order-manager.js"></script>
+    <script src="js/shift-manager.js"></script>
+    <script src="js/modal-manager.js"></script>
+    
+    <!-- Legacy helpers -->
     <script src="debug-helper.js"></script>
     <script src="data.js"></script>
     <script src="mobile-helpers.js"></script>
-    <script src="script.js"></script>
+    
+    <!-- App initialization - load last -->
+    <script src="js/app-initializer.js"></script>
 </body>
 </html>

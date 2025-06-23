@@ -96,6 +96,34 @@ const hapticFeedback = (type = 'light') => {
     }
 };
 
+/**
+ * Haptic feedback cho thiết bị di động
+ * @param {string} intensity - Cường độ rung: 'light', 'medium', 'heavy'
+ */
+window.triggerHapticFeedback = (intensity = 'light') => {
+    try {
+        // Nếu trình duyệt hỗ trợ API Vibration
+        if (navigator.vibrate) {
+            switch (intensity) {
+                case 'light':
+                    navigator.vibrate(10);
+                    break;
+                case 'medium':
+                    navigator.vibrate(20);
+                    break;
+                case 'heavy':
+                    navigator.vibrate([30, 10, 30]);
+                    break;
+                default:
+                    navigator.vibrate(10);
+            }
+            console.log(`Haptic feedback: ${intensity}`);
+        }
+    } catch (error) {
+        console.warn('Haptic feedback không được hỗ trợ', error);
+    }
+};
+
 // Show toast notification
 const showToast = (message, type = 'info', duration = 3000) => {
     const toastContainer = document.querySelector('.toast-container') || createToastContainer();
