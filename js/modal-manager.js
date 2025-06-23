@@ -4,6 +4,40 @@
  */
 
 // =============================================================================
+// SAFE WRAPPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Safe error handler wrapper for Modal Manager
+ */
+function safeModalError(message, error) {
+    if (typeof window !== 'undefined' && window.debugError && typeof window.debugError === 'function') {
+        try {
+            window.debugError(message, error);
+        } catch {
+            console.error(`[Modal Manager ERROR] ${message}`, error);
+        }
+    } else {
+        console.error(`[Modal Manager ERROR] ${message}`, error);
+    }
+}
+
+/**
+ * Safe log wrapper for Modal Manager
+ */
+function safeModalLog(message, ...args) {
+    if (typeof window !== 'undefined' && window.debugLog && typeof window.debugLog === 'function') {
+        try {
+            window.debugLog(message, ...args);
+        } catch {
+            console.log(`[Modal Manager] ${message}`, ...args);
+        }
+    } else {
+        console.log(`[Modal Manager] ${message}`, ...args);
+    }
+}
+
+// =============================================================================
 // MODAL MANAGEMENT FUNCTIONS
 // =============================================================================
 
@@ -568,9 +602,8 @@ window.confirmPayment = processPayment;
 // Generic modal functions
 window.showModal = function(modalId, options = {}) {
     return window.withErrorHandling(() => {
-        const modal = document.getElementById(modalId);
-        if (!modal) {
-            window.debugError(`Modal not found: ${modalId}`);
+        const modal = document.getElementById(modalId);        if (!modal) {
+            safeModalError(`Modal not found: ${modalId}`);
             return false;
         }
         
@@ -631,3 +664,24 @@ window.processPayment = function(paymentData) {
 };
 
 console.log('✅ Modal Manager module loaded successfully');
+
+// Export Modal Manager namespace
+window.ModalManager = {
+    // Modal management
+    showModal: window.showModal,
+    closeModal: window.closeModal,
+    closeAllModals: window.closeAllModals,
+    
+    // Specific modals
+    showOrderModal: window.showOrderModal,
+    showPaymentModal: window.showPaymentModal,
+    showPaymentMethodModal: window.showPaymentMethodModal,
+    
+    // Invoice management
+    createNewInvoice: window.createNewInvoice,
+    deleteInvoice: window.deleteInvoice,
+    processPayment: window.processPayment,
+    
+    // Export functionality
+    exportData: window.exportData
+};

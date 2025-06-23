@@ -416,6 +416,34 @@ window.mobileHelpers = {
     initPullToRefresh
 };
 
+// Export main functions to window for app-initializer compatibility
+window.setupMobileHelpers = initMobileHelpers;
+window.updateMobileLayout = () => {
+    try {
+        // Re-check mobile status and update layout
+        if (isMobile()) {
+            document.body.classList.add('mobile');
+        } else {
+            document.body.classList.remove('mobile');
+        }
+        
+        // Update orientation
+        if (isLandscape()) {
+            document.body.classList.add('landscape');
+            document.body.classList.remove('portrait');
+        } else {
+            document.body.classList.add('portrait');
+            document.body.classList.remove('landscape');
+        }
+        
+        console.log('📱 Mobile layout updated');
+    } catch (error) {
+        console.error('❌ Error updating mobile layout:', error);
+    }
+};
+
+window.triggerHapticFeedback = hapticFeedback;
+
 // Initialize when ready - wait for main app
 const startMobileHelpers = () => {
     if (document.readyState === 'loading') {

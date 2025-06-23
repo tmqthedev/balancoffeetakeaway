@@ -317,3 +317,21 @@ window.updateShiftDisplay = updateShiftDisplay;
 window.loadShiftData = loadShiftData;
 
 console.log('✅ Shift Manager module loaded successfully');
+
+// Export Shift Manager namespace
+window.ShiftManager = {
+    // Shift management
+    startShift: window.startShift,
+    endShift: window.endShift,
+    updateShiftDisplay: window.updateShiftDisplay,
+    
+    // Shift data
+    getShiftData: window.getShiftData,
+    loadShiftData: window.loadShiftData,
+    saveShiftData: window.saveShiftData,
+    calculateShiftTotal: window.calculateShiftTotal,
+    
+    // Export and clearing
+    exportShiftData: window.exportShiftData,
+    clearShiftData: window.clearShiftData
+};

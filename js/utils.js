@@ -228,7 +228,7 @@ window.safeArrayOperation = function(array, operation, defaultValue = []) {
  * Generate unique ID
  */
 window.generateId = function(prefix = 'ID') {
-    return `${prefix}${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
+    return `${prefix}${Date.now()}${Math.random().toString(36).substring(2, 11)}`;
 };
 
 // =============================================================================
@@ -344,3 +344,85 @@ window.safeExecute = function(fn, defaultValue = null, context = 'function') {
 };
 
 console.log('✅ BalanCoffee Utils loaded');
+
+// Export Utils namespace
+window.BalanCoffeeUtils = {
+    // Debug utilities
+    debugLog: window.debugLog,
+    debugError: window.debugError,
+    debugWarn: window.debugWarn,
+    
+    // Validation utilities  
+    validateEmail: window.validateEmail,
+    validatePhoneNumber: window.validatePhoneNumber,
+    validateNumber: window.validateNumber,
+    validateRequired: window.validateRequired,
+    validateMinLength: window.validateMinLength,
+    validateMaxLength: window.validateMaxLength,
+    
+    // Format utilities
+    formatCurrency: window.formatCurrency,
+    formatDate: window.formatDate,
+    formatTime: window.formatTime,
+    formatDateTime: window.formatDateTime,
+    formatPhoneNumber: window.formatPhoneNumber,
+    
+    // String utilities
+    capitalizeFirst: window.capitalizeFirst,
+    removeVietnameseTones: window.removeVietnameseTones,
+    generateId: window.generateId,
+    sanitizeInput: window.sanitizeInput,
+    
+    // Safety utilities
+    safeCall: window.safeCall,
+    safeExecute: window.safeExecute,
+    
+    // State
+    BalanCoffeeState: window.BalanCoffeeState
+};
+
+/**
+ * BalanCoffee - Utils Module
+ * Các hàm tiện ích và helper functions
+ */
+
+// =============================================================================
+// SAFE WRAPPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Safe error handler wrapper for Utils
+ */
+/**
+ * Safe error handler wrapper for Utils
+ */
+function safeUtilsError(message, error) {
+    if (typeof window !== 'undefined' && window.debugError && typeof window.debugError === 'function') {
+        try {
+            window.debugError(message, error);
+        } catch {
+            console.error(`[Utils ERROR] ${message}`, error);
+        }
+    } else {
+        console.error(`[Utils ERROR] ${message}`, error);
+    }
+}
+
+/**
+ * Safe log wrapper for Utils
+ */
+function safeUtilsLog(message, ...args) {
+    if (typeof window !== 'undefined' && window.debugLog && typeof window.debugLog === 'function') {
+        try {
+            window.debugLog(message, ...args);
+        } catch {
+            console.log(`[Utils] ${message}`, ...args);
+        }
+    } else {
+        console.log(`[Utils] ${message}`, ...args);
+    }
+}
+
+// =============================================================================
+// CORE UTILITIES
+// =============================================================================

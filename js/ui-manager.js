@@ -1,7 +1,33 @@
 /**
- * BalanCoffee - UI Manager
- * Quản lý giao diện người dùng và các tương tác
+ * BalanCoffee - UI Manager Module
+ * Quản lý giao diện người dùng và tương tác
  */
+
+// =============================================================================
+// SAFE WRAPPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Safe error handler wrapper for UI Manager
+ */
+function safeUIError(message, error) {
+    if (typeof window !== 'undefined' && window.debugError && typeof window.debugError === 'function') {
+        window.debugError(message, error);
+    } else {
+        console.error(`[UI Manager ERROR] ${message}`, error || 'No error details');
+    }
+}
+
+/**
+ * Safe log wrapper for UI Manager
+ */
+function safeUILog(message, ...args) {
+    if (typeof window !== 'undefined' && window.debugLog && typeof window.debugLog === 'function') {
+        window.debugLog(message, ...args);
+    } else {
+        console.log(`[UI Manager] ${message}`, ...args);
+    }
+}
 
 // =============================================================================
 // NOTIFICATION SYSTEM
@@ -106,11 +132,10 @@ window.showNotification = function(message, type = 'info') {
 /**
  * Show loading screen
  */
-window.showLoadingScreen = function(message = "Đang tải...", showSpinner = true) {
-    return window.withErrorHandling(() => {
+window.showLoadingScreen = function(message = "Đang tải...", showSpinner = true) {    return window.withErrorHandling(() => {
         const loadingScreen = window.safeGetElement('loading-screen');
         if (!loadingScreen) {
-            window.debugError('Loading screen element not found');
+            safeUIError('Loading screen element not found');
             return;
         }
         
@@ -461,9 +486,8 @@ window.handleCategoryClick = function(event) {
     return window.withErrorHandling(() => {
         const btn = event.currentTarget;
         const category = btn.getAttribute('data-category');
-        
-        if (!category) {
-            window.debugError('❌ Category not found in button');
+          if (!category) {
+            safeUIError('❌ Category not found in button');
             return;
         }
         
@@ -506,9 +530,8 @@ window.showAppContainer = function() {
             appContainer.style.display = 'flex';
             appContainer.style.visibility = 'visible';
             appContainer.style.opacity = '1';
-            window.debugLog('✅ App container shown');
-        } else {
-            window.debugError('❌ App container not found');
+            window.debugLog('✅ App container shown');        } else {
+            safeUIError('❌ App container not found');
             return false;
         }
         
@@ -585,3 +608,40 @@ window.updateAllUIStats = function() {
 };
 
 console.log('✅ BalanCoffee UI Manager loaded');
+
+// Export UI Manager namespace
+window.UIManager = {
+    // Notification system
+    showNotification: window.showNotification,
+    showLoadingScreen: window.showLoadingScreen,
+    hideLoadingScreen: window.hideLoadingScreen,
+    
+    // Sidebar management
+    toggleSidebar: window.toggleSidebar,
+    showSidebar: window.showSidebar,
+    hideSidebar: window.hideSidebar,
+    closeSidebar: window.hideSidebar, // Alias
+    
+    // Dropdown management
+    toggleAdminDropdown: window.toggleAdminDropdown,
+    openAdminDropdown: window.openAdminDropdown,
+    closeAdminDropdown: window.closeAdminDropdown,
+    closeAllDropdowns: window.closeAllDropdowns,
+    
+    // Category management
+    setActiveCategory: window.setActiveCategory,
+    filterMenuByCategory: window.filterMenuByCategory,
+    updateCategoryCounts: window.updateCategoryCounts,
+    setupCategoryFilters: window.setupCategoryFilters,
+    handleCategoryClick: window.handleCategoryClick,
+    
+    // Stats and updates
+    updateQuickStats: window.updateQuickStats,
+    updateAllUIStats: window.updateAllUIStats,
+    
+    // Menu rendering
+    renderMenu: window.renderMenu,
+    
+    // App container
+    showAppContainer: window.showAppContainer
+};

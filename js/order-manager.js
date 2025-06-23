@@ -3,6 +3,45 @@
  * Quản lý đơn hàng và menu
  */
 
+/**
+ * BalanCoffee - Order Manager Module
+ * Quản lý đơn hàng và giỏ hàng
+ */
+
+// =============================================================================
+// SAFE WRAPPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Safe error handler wrapper for Order Manager
+ */
+function safeOrderError(message, error) {
+    if (typeof window !== 'undefined' && window.debugError && typeof window.debugError === 'function') {
+        try {
+            window.debugError(message, error);
+        } catch {
+            console.error(`[Order Manager ERROR] ${message}`, error);
+        }
+    } else {
+        console.error(`[Order Manager ERROR] ${message}`, error);
+    }
+}
+
+/**
+ * Safe log wrapper for Order Manager
+ */
+function safeOrderLog(message, ...args) {
+    if (typeof window !== 'undefined' && window.debugLog && typeof window.debugLog === 'function') {
+        try {
+            window.debugLog(message, ...args);
+        } catch {
+            console.log(`[Order Manager] ${message}`, ...args);
+        }
+    } else {
+        console.log(`[Order Manager] ${message}`, ...args);
+    }
+}
+
 // =============================================================================
 // ORDER MANAGEMENT
 // =============================================================================
@@ -14,9 +53,8 @@ window.addToOrder = function(itemId) {
     return window.withErrorHandling(() => {
         const menuData = window.loadMenuData();
         const item = menuData.find(i => i.id === itemId);
-        
-        if (!item) {
-            window.debugError(`❌ Item not found: ${itemId}`);
+          if (!item) {
+            safeOrderError(`❌ Item not found: ${itemId}`);
             window.showNotification('Sản phẩm không tồn tại', 'error');
             return false;
         }
@@ -50,10 +88,9 @@ window.addToOrder = function(itemId) {
  * Update item quantity in order
  */
 window.updateQuantity = function(itemId, change) {
-    return window.withErrorHandling(() => {
-        const item = window.STATE.currentOrder.find(i => i.id === itemId);
+    return window.withErrorHandling(() => {        const item = window.STATE.currentOrder.find(i => i.id === itemId);
         if (!item) {
-            window.debugError(`❌ Item not found in order: ${itemId}`);
+            safeOrderError(`❌ Item not found in order: ${itemId}`);
             return false;
         }
         
@@ -78,9 +115,8 @@ window.updateQuantity = function(itemId, change) {
  */
 window.removeFromOrder = function(itemId) {
     return window.withErrorHandling(() => {
-        const index = window.STATE.currentOrder.findIndex(i => i.id === itemId);
-        if (index === -1) {
-            window.debugError(`❌ Item not found in order: ${itemId}`);
+        const index = window.STATE.currentOrder.findIndex(i => i.id === itemId);        if (index === -1) {
+            safeOrderError(`❌ Item not found in order: ${itemId}`);
             return false;
         }
         
@@ -145,9 +181,8 @@ window.updateOrderDisplay = function() {
         const orderTotalElement = window.safeGetElement('order-total');
         const orderPreviewElement = window.safeGetElement('order-items-preview');
         const orderTotalPreviewElement = window.safeGetElement('order-total-preview');
-        
-        if (!orderContainer) {
-            window.debugError('❌ Order container not found');
+          if (!orderContainer) {
+            safeOrderError('❌ Order container not found');
             return false;
         }
         
@@ -330,10 +365,9 @@ window.renderMenuItems = function() {
         }
         
         let menuData = window.loadMenuData();
-        
-        // Validate menu data
+          // Validate menu data
         if (!window.validateMenuData(menuData)) {
-            window.debugError('❌ Invalid menu data loaded');
+            safeOrderError('❌ Invalid menu data loaded');
             menuData = window.CONFIG?.FALLBACK_MENU || [];
         }
         
@@ -430,3 +464,24 @@ window.showPaymentModal = window.showPaymentModal || function(invoiceId) {
 };
 
 console.log('✅ BalanCoffee Order Manager loaded');
+
+// Export Order Manager namespace
+window.OrderManager = {
+    // Order management
+    addToOrder: window.addToOrder,
+    updateOrderQuantity: window.updateOrderQuantity,
+    removeFromOrder: window.removeFromOrder,
+    clearOrder: window.clearOrder,
+    
+    // Order display
+    updateOrderDisplay: window.updateOrderDisplay,
+    calculateOrderTotal: window.calculateOrderTotal,
+    
+    // Menu display
+    renderMenu: window.renderMenu,
+    showAllCategories: window.showAllCategories,
+    
+    // Modal placeholders
+    showOrderModal: window.showOrderModal,
+    showPaymentModal: window.showPaymentModal
+};

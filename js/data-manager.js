@@ -1,7 +1,41 @@
 /**
- * BalanCoffee - Data Manager
- * Quản lý dữ liệu menu, hóa đơn và localStorage
+ * BalanCoffee - Data Manager Module
+ * Quản lý dữ liệu ứng dụng, bao gồm hóa đơn, menu, và localStorage
  */
+
+// =============================================================================
+// SAFE WRAPPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Safe error handler wrapper for Data Manager
+ */
+function safeDataError(message, error) {
+    if (typeof window !== 'undefined' && window.debugError && typeof window.debugError === 'function') {
+        try {
+            window.debugError(message, error);
+        } catch {
+            console.error(`[Data Manager ERROR] ${message}`, error);
+        }
+    } else {
+        console.error(`[Data Manager ERROR] ${message}`, error);
+    }
+}
+
+/**
+ * Safe log wrapper for Data Manager
+ */
+function safeDataLog(message, ...args) {
+    if (typeof window !== 'undefined' && window.debugLog && typeof window.debugLog === 'function') {
+        try {
+            window.debugLog(message, ...args);
+        } catch {
+            console.log(`[Data Manager] ${message}`, ...args);
+        }
+    } else {
+        console.log(`[Data Manager] ${message}`, ...args);
+    }
+}
 
 // =============================================================================
 // MENU DATA MANAGEMENT
@@ -43,9 +77,8 @@ window.loadMenuData = function() {
  * Save menu data to localStorage
  */
 window.saveMenuData = function(data) {
-    return window.withErrorHandling(() => {
-        if (!window.validateMenuData(data)) {
-            window.debugError('Invalid menu data provided for saving');
+    return window.withErrorHandling(() => {        if (!window.validateMenuData(data)) {
+            safeDataError('Invalid menu data provided for saving');
             return false;
         }
         
@@ -73,9 +106,8 @@ window.loadInvoices = function() {
         
         // Validate each invoice
         const validInvoices = savedInvoices.filter(invoice => window.validateInvoice(invoice));
-        
-        if (validInvoices.length !== savedInvoices.length) {
-            window.debugError(`Found ${savedInvoices.length - validInvoices.length} invalid invoices`);
+          if (validInvoices.length !== savedInvoices.length) {
+            safeDataError(`Found ${savedInvoices.length - validInvoices.length} invalid invoices`);
         }
         
         window.STATE.invoices = validInvoices;
@@ -107,9 +139,8 @@ window.saveInvoices = function() {
  * Add new invoice
  */
 window.addInvoice = function(invoice) {
-    return window.withErrorHandling(() => {
-        if (!window.validateInvoice(invoice)) {
-            window.debugError('Invalid invoice data provided');
+    return window.withErrorHandling(() => {        if (!window.validateInvoice(invoice)) {
+            safeDataError('Invalid invoice data provided');
             return false;
         }
         
@@ -134,9 +165,8 @@ window.addInvoice = function(invoice) {
  */
 window.updateInvoice = function(invoiceId, updates) {
     return window.withErrorHandling(() => {
-        const index = window.STATE.invoices.findIndex(inv => inv.id === invoiceId);
-        if (index === -1) {
-            window.debugError(`Invoice not found: ${invoiceId}`);
+        const index = window.STATE.invoices.findIndex(inv => inv.id === invoiceId);        if (index === -1) {
+            safeDataError(`Invoice not found: ${invoiceId}`);
             return false;
         }
         
@@ -145,7 +175,7 @@ window.updateInvoice = function(invoiceId, updates) {
         
         // Validate updated invoice
         if (!window.validateInvoice(updatedInvoice)) {
-            window.debugError('Updated invoice data is invalid');
+            safeDataError('Updated invoice data is invalid');
             return false;
         }
         
@@ -169,9 +199,8 @@ window.updateInvoice = function(invoiceId, updates) {
  */
 window.deleteInvoice = function(invoiceId) {
     return window.withErrorHandling(() => {
-        const index = window.STATE.invoices.findIndex(inv => inv.id === invoiceId);
-        if (index === -1) {
-            window.debugError(`Invoice not found: ${invoiceId}`);
+        const index = window.STATE.invoices.findIndex(inv => inv.id === invoiceId);        if (index === -1) {
+            safeDataError(`Invoice not found: ${invoiceId}`);
             return false;
         }
         
@@ -470,6 +499,46 @@ window.clearAllInvoices = function() {
 };
 
 /**
+ * Save all data to localStorage
+ */
+window.saveAllData = function() {
+    return window.withErrorHandling(() => {
+        window.debugLog('💾 Saving all data...');
+        
+        // Save invoices
+        window.saveInvoices();
+        
+        // Save shift data
+        window.saveShiftData();
+        
+        // Save menu data if modified
+        if (window.menuData) {
+            window.saveMenuData(window.menuData);
+        }
+        
+        window.debugLog('✅ All data saved successfully');
+        return true;
+        
+    }, 'saveAllData') || false;
+};
+
+/**
+ * Sync data (placeholder for future implementation)
+ */
+window.syncData = function() {
+    return window.withErrorHandling(() => {
+        window.debugLog('🔄 Syncing data...');
+        
+        // Placeholder for data synchronization logic
+        // Could sync with server, backup to cloud, etc.
+        
+        window.debugLog('✅ Data sync completed');
+        return true;
+        
+    }, 'syncData') || false;
+};
+
+/**
  * Save invoices to storage (alias for compatibility)
  */
 window.saveInvoicesToStorage = function() {
@@ -477,3 +546,30 @@ window.saveInvoicesToStorage = function() {
 };
 
 console.log('✅ BalanCoffee Data Manager loaded');
+
+// Export Data Manager namespace
+window.DataManager = {
+    // Menu data management
+    loadMenuData: window.loadMenuData,
+    saveMenuData: window.saveMenuData,
+    validateMenuData: window.validateMenuData,
+    
+    // Invoice data management
+    loadInvoicesData: window.loadInvoicesData,
+    saveInvoicesData: window.saveInvoicesData,
+    
+    // Export functionality
+    exportData: window.exportData,
+    clearAllInvoices: window.clearAllInvoices,
+    
+    // Storage utilities
+    safeLocalStorageGet: window.safeLocalStorageGet,
+    safeLocalStorageSet: window.safeLocalStorageSet,
+    
+    // Data sync
+    saveAllData: window.saveAllData,
+    syncData: window.syncData,
+    
+    // Compatibility
+    saveInvoicesToStorage: window.saveInvoicesToStorage
+};

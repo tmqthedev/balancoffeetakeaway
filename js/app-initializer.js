@@ -4,6 +4,77 @@
  */
 
 // =============================================================================
+// SAFE WRAPPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Safe error handler wrapper
+ */
+function safeErrorHandler(message, error) {
+    if (typeof window !== 'undefined' && window.debugError && typeof window.debugError === 'function') {
+        window.debugError(message, error);
+    } else {
+        console.error(`[BalanCoffee ERROR] ${message}`, error);
+    }
+}
+
+/**
+ * Safe log wrapper
+ */
+function safeLog(message, ...args) {
+    if (typeof window !== 'undefined' && window.debugLog && typeof window.debugLog === 'function') {
+        window.debugLog(message, ...args);
+    } else {
+        console.log(`[BalanCoffee] ${message}`, ...args);
+    }
+}
+
+/**
+ * Fallback debug functions in case debug-helper.js is not loaded yet
+ */
+function ensureDebugFunctions() {
+    // Ensure window object exists
+    if (typeof window === 'undefined') {
+        console.error('Window object not available');
+        return;
+    }
+    
+    if (!window.debugLog) {
+        window.debugLog = function(message, ...args) {
+            console.log(`[BalanCoffee] ${message}`, ...args);
+        };
+    }
+    
+    if (!window.debugError) {
+        window.debugError = function(message, ...args) {
+            console.error(`[BalanCoffee ERROR] ${message}`, ...args);
+        };
+    }
+    
+    if (!window.debugWarn) {
+        window.debugWarn = function(message, ...args) {
+            console.warn(`[BalanCoffee WARN] ${message}`, ...args);
+        };
+    }
+    
+    if (!window.withErrorHandling) {
+        window.withErrorHandling = function(fn, context = 'unknown') {
+            return function(...args) {
+                try {
+                    return fn.apply(this, args);
+                } catch (error) {
+                    console.error(`Error in ${context}:`, error);
+                    return null;
+                }
+            };
+        };
+    }
+}
+
+// Ensure debug functions are available immediately
+ensureDebugFunctions();
+
+// =============================================================================
 // INITIALIZATION FUNCTIONS
 // =============================================================================
 
@@ -11,8 +82,11 @@
  * Initialize the BalanCoffee application
  */
 function initializeApp() {
+    // Ensure debug functions are available first
+    ensureDebugFunctions();
+    
     try {
-        window.debugLog('🚀 Initializing BalanCoffee application...');
+        safeLog('🚀 Initializing BalanCoffee application...');
         
         // Show loading screen
         if (window.showLoadingScreen) {
@@ -28,10 +102,10 @@ function initializeApp() {
         
         // Final initialization steps
         finalizeInitialization();        
-        window.debugLog('✅ BalanCoffee application initialized successfully');
+        safeLog('✅ BalanCoffee application initialized successfully');
         
     } catch (error) {
-        window.debugError('❌ Critical error during app initialization:', error);
+        safeErrorHandler('❌ Critical error during app initialization:', error);
         handleInitializationError(error);
     }
 }
@@ -41,7 +115,7 @@ function initializeApp() {
  */
 function initializeGlobalVariables() {
     try {
-        window.debugLog('🔄 Initializing global variables...');
+        safeLog('🔄 Initializing global variables...');
         
         // Initialize core variables if not already set
         if (!window.currentOrder) window.currentOrder = [];
@@ -54,10 +128,10 @@ function initializeGlobalVariables() {
         if (!window.currentShiftEmployee) window.currentShiftEmployee = null;
         if (!window.currentShiftNote) window.currentShiftNote = null;
         
-        window.debugLog('✅ Global variables initialized');
+        safeLog('✅ Global variables initialized');
         
     } catch (error) {
-        window.debugError('❌ Error initializing global variables:', error);
+        safeErrorHandler('❌ Error initializing global variables:', error);
         throw error;
     }
 }
@@ -67,8 +141,9 @@ function initializeGlobalVariables() {
  */
 function loadStoredData() {
     try {
-        window.debugLog('📖 Loading stored data...');
-          // Load invoices
+        safeLog('📖 Loading stored data...');
+        
+        // Load invoices
         if (window.loadInvoicesData) {
             window.loadInvoicesData();
         }
@@ -83,10 +158,10 @@ function loadStoredData() {
             window.loadMenuData();
         }
         
-        window.debugLog('✅ Stored data loaded');
+        safeLog('✅ Stored data loaded');
         
     } catch (error) {
-        window.debugError('❌ Error loading stored data:', error);
+        safeErrorHandler('❌ Error loading stored data:', error);
         // Continue with fallback data
         loadFallbackData();
     }
@@ -97,17 +172,16 @@ function loadStoredData() {
  */
 function loadFallbackData() {
     try {
-        window.debugLog('⚠️ Loading fallback data...');
-        
-        // Use fallback menu from config
+        safeLog('⚠️ Loading fallback data...');
+          // Use fallback menu from config
         if (window.BalanCoffeeConfig?.FALLBACK_MENU) {
             window.menuData = window.BalanCoffeeConfig.FALLBACK_MENU;
         }
         
-        window.debugLog('✅ Fallback data loaded');
+        safeLog('✅ Fallback data loaded');
         
     } catch (error) {
-        window.debugError('❌ Error loading fallback data:', error);
+        safeErrorHandler('❌ Error loading fallback data:', error);
     }
 }
 
@@ -116,11 +190,12 @@ function loadFallbackData() {
  */
 function initializeUI() {
     try {
-        window.debugLog('🎨 Initializing UI components...');
+        safeLog('🎨 Initializing UI components...');
         
         // Check required DOM elements
         checkRequiredElements();
-          // Initialize menu display
+        
+        // Initialize menu display
         if (window.renderMenu) {
             window.renderMenu();
         }
@@ -140,10 +215,10 @@ function initializeUI() {
             window.updateCategoryCounts();
         }
         
-        window.debugLog('✅ UI components initialized');
+        safeLog('✅ UI components initialized');
         
     } catch (error) {
-        window.debugError('❌ Error initializing UI:', error);
+        safeErrorHandler('❌ Error initializing UI:', error);
         throw error;
     }
 }
@@ -152,29 +227,46 @@ function initializeUI() {
  * Check if required DOM elements exist
  */
 function checkRequiredElements() {
+    // Wait for DOM to be fully ready
+    if (document.readyState === 'loading') {
+        safeLog('⏳ DOM still loading, waiting...');
+        return false; // Skip check if DOM not ready
+    }
+    
     const requiredElements = window.BalanCoffeeConfig?.REQUIRED_ELEMENTS || [
         'app-container',
-        'menu-grid',
+        'menu-grid', 
         'order-items',
         'order-total'
     ];
     
     const missingElements = [];
+    const foundElements = [];
     
     requiredElements.forEach(elementId => {
         const element = document.getElementById(elementId);
         if (!element) {
             missingElements.push(elementId);
+        } else {
+            foundElements.push(elementId);
         }
     });
     
+    safeLog(`🔍 DOM Elements Check: Found ${foundElements.length}/${requiredElements.length} elements`);
+    
     if (missingElements.length > 0) {
         const error = new Error(`Missing required DOM elements: ${missingElements.join(', ')}`);
-        window.debugError('❌ Missing required elements:', error);
-        throw error;
+        safeErrorHandler('❌ Missing required elements:', error);
+        safeLog('ℹ️ Found elements: ' + foundElements.join(', '));
+        safeLog('ℹ️ Document ready state: ' + document.readyState);
+        
+        // Don't throw error in initialization, just warn
+        safeLog('⚠️ Continuing initialization without all DOM elements');
+        return false;
     }
     
-    window.debugLog('✅ All required DOM elements found');
+    safeLog('✅ All required DOM elements found');
+    return true;
 }
 
 /**
@@ -182,7 +274,7 @@ function checkRequiredElements() {
  */
 function setupEventListeners() {
     try {
-        window.debugLog('👂 Setting up event listeners...');
+        safeLog('👂 Setting up event listeners...');
         
         // Setup mobile helpers
         if (window.setupMobileHelpers) {
@@ -201,10 +293,9 @@ function setupEventListeners() {
         // Setup visibility change handler
         document.addEventListener('visibilitychange', handleVisibilityChange);
         
-        window.debugLog('✅ Event listeners setup complete');
-        
+        safeLog('✅ Event listeners setup complete');
     } catch (error) {
-        window.debugError('❌ Error setting up event listeners:', error);
+        safeErrorHandler('❌ Error setting up event listeners:', error);
     }
 }
 
@@ -213,10 +304,11 @@ function setupEventListeners() {
  */
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', (event) => {
-        try {            // Ctrl/Cmd + Enter: Quick order completion
+        try {
+            // Ctrl/Cmd + Enter: Quick order completion
             if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
                 event.preventDefault();
-                if (window.currentOrder.length > 0 && window.createNewInvoice) {
+                if (window.currentOrder && window.currentOrder.length > 0 && window.createNewInvoice) {
                     window.createNewInvoice();
                 }
             }
@@ -237,9 +329,8 @@ function setupKeyboardShortcuts() {
                 event.preventDefault();
                 showDebugInfo();
             }
-            
         } catch (error) {
-            window.debugError('❌ Error in keyboard shortcut handler:', error);
+            safeErrorHandler('❌ Error in keyboard shortcut handler:', error);
         }
     });
 }
@@ -253,13 +344,13 @@ function handleWindowResize() {
         if (window.updateMobileLayout) {
             window.updateMobileLayout();
         }
-          // Recalculate UI dimensions
+        
+        // Recalculate UI dimensions
         if (window.recalculateLayout) {
             window.recalculateLayout();
         }
-        
     } catch (error) {
-        window.debugError('❌ Error handling window resize:', error);
+        safeErrorHandler('❌ Error handling window resize:', error);
     }
 }
 
@@ -267,20 +358,20 @@ function handleWindowResize() {
  * Handle before unload
  */
 function handleBeforeUnload(event) {
-    try {        // Save current state
+    try {
+        // Save current state
         if (window.saveAllData) {
             window.saveAllData();
         }
         
         // Warn if there's unsaved order data
-        if (window.currentOrder.length > 0) {
+        if (window.currentOrder && window.currentOrder.length > 0) {
             const message = 'Bạn có đơn hàng chưa hoàn thành. Bạn có chắc muốn thoát?';
             event.returnValue = message;
             return message;
         }
-        
     } catch (error) {
-        window.debugError('❌ Error in before unload handler:', error);
+        safeErrorHandler('❌ Error in before unload handler:', error);
     }
 }
 
@@ -288,7 +379,8 @@ function handleBeforeUnload(event) {
  * Handle visibility change
  */
 function handleVisibilityChange() {
-    try {        if (document.hidden) {
+    try {
+        if (document.hidden) {
             // Page hidden - save data
             if (window.saveAllData) {
                 window.saveAllData();
@@ -302,9 +394,8 @@ function handleVisibilityChange() {
                 window.updateShiftDisplay();
             }
         }
-        
     } catch (error) {
-        window.debugError('❌ Error in visibility change handler:', error);
+        safeErrorHandler('❌ Error in visibility change handler:', error);
     }
 }
 
@@ -313,18 +404,19 @@ function handleVisibilityChange() {
  */
 function setupErrorHandlers() {
     try {
-        window.debugLog('🛡️ Setting up error handlers...');
+        safeLog('🛡️ Setting up error handlers...');
         
         // Global error handler
         window.addEventListener('error', (event) => {
-            window.debugError('💥 Global error caught:', {
+            safeErrorHandler('💥 Global error caught:', {
                 message: event.message,
                 filename: event.filename,
                 lineno: event.lineno,
                 colno: event.colno,
                 error: event.error
             });
-              // Show user-friendly error message
+            
+            // Show user-friendly error message
             if (window.showNotification) {
                 window.showNotification('Đã xảy ra lỗi không mong muốn', 'error');
             }
@@ -332,20 +424,20 @@ function setupErrorHandlers() {
         
         // Unhandled promise rejection handler
         window.addEventListener('unhandledrejection', (event) => {
-            window.debugError('💥 Unhandled promise rejection:', event.reason);
+            safeErrorHandler('💥 Unhandled promise rejection:', event.reason);
             
             // Prevent default browser handling
             event.preventDefault();
-              // Show user-friendly error message
+            
+            // Show user-friendly error message
             if (window.showNotification) {
                 window.showNotification('Đã xảy ra lỗi xử lý', 'error');
             }
         });
         
-        window.debugLog('✅ Error handlers setup complete');
-        
+        safeLog('✅ Error handlers setup complete');
     } catch (error) {
-        window.debugError('❌ Error setting up error handlers:', error);
+        safeErrorHandler('❌ Error setting up error handlers:', error);
     }
 }
 
@@ -354,8 +446,9 @@ function setupErrorHandlers() {
  */
 function finalizeInitialization() {
     try {
-        window.debugLog('🏁 Finalizing initialization...');
-          // Hide loading screen
+        safeLog('🏁 Finalizing initialization...');
+        
+        // Hide loading screen
         if (window.hideLoadingScreen) {
             window.hideLoadingScreen(500, () => {
                 // Show welcome notification
@@ -373,10 +466,9 @@ function finalizeInitialization() {
         // Set app as initialized
         window.BalanCoffeeInitialized = true;
         
-        window.debugLog('✅ Initialization finalized');
-        
+        safeLog('✅ Initialization finalized');
     } catch (error) {
-        window.debugError('❌ Error finalizing initialization:', error);
+        safeErrorHandler('❌ Error finalizing initialization:', error);
     }
 }
 
@@ -386,7 +478,8 @@ function finalizeInitialization() {
 function handleInitializationError(error) {
     try {
         console.error('💥 Critical initialization error:', error);
-          // Hide loading screen
+        
+        // Hide loading screen
         if (window.hideLoadingScreen) {
             window.hideLoadingScreen(0);
         }
@@ -419,8 +512,7 @@ function handleInitializationError(error) {
 /**
  * Show debug information
  */
-function showDebugInfo() {
-    const debugInfo = {
+function showDebugInfo() {    const debugInfo = {
         appVersion: window.BalanCoffeeConfig?.APP_VERSION || 'Unknown',
         initialized: window.BalanCoffeeInitialized || false,
         currentOrder: window.currentOrder?.length || 0,
@@ -431,7 +523,8 @@ function showDebugInfo() {
     };
     
     console.table(debugInfo);
-      if (window.showNotification) {
+    
+    if (window.showNotification) {
         window.showNotification('Debug info logged to console (F12)', 'info');
     }
 }
@@ -441,7 +534,7 @@ function showDebugInfo() {
  */
 function restartApp() {
     try {
-        window.debugLog('🔄 Restarting application...');
+        safeLog('🔄 Restarting application...');
         
         // Clear all data
         localStorage.clear();
@@ -459,9 +552,8 @@ function restartApp() {
         
         // Reload page
         location.reload();
-        
     } catch (error) {
-        window.debugError('❌ Error restarting app:', error);
+        safeErrorHandler('❌ Error restarting app:', error);
         location.reload();
     }
 }
@@ -475,8 +567,13 @@ function restartApp() {
  */
 function ensureDOMReady(callback) {
     if (document.readyState === 'loading') {
+        safeLog('⏳ Waiting for DOM to be ready...');
         document.addEventListener('DOMContentLoaded', callback);
+    } else if (document.readyState === 'interactive') {
+        safeLog('⏳ DOM interactive, waiting for complete...');
+        window.addEventListener('load', callback);
     } else {
+        safeLog('✅ DOM already ready');
         callback();
     }
 }
@@ -509,6 +606,10 @@ console.log('✅ App Initializer module loaded successfully');
 
 // Auto-initialize when DOM is ready
 ensureDOMReady(() => {
-    // Small delay to ensure all modules are loaded
-    setTimeout(initializeApp, 100);
+    safeLog('📋 DOM ready, starting initialization...');
+    // Longer delay to ensure all modules are loaded
+    setTimeout(() => {
+        safeLog('🚀 Starting delayed initialization...');
+        initializeApp();
+    }, 500);
 });
