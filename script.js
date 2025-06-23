@@ -1,5 +1,5 @@
 // BalanCoffee - Main Application Script
-// Version: 8.2 - All Issues Fixed, New Features Added
+// Version: 8.3 - Improved Initialization System
 
 // =============================================================================
 // GLOBAL VARIABLES
@@ -254,6 +254,77 @@ function ensureDOMReady(callback) {
     } else {
         callback();
     }
+}
+
+// =============================================================================
+// LOCALSTORAGE FUNCTIONS
+// =============================================================================
+
+function updateQuickStats() {
+    try {
+        // Cập nhật thời gian hiện tại
+        const now = new Date();
+        const timeElem = document.getElementById('current-time');
+        if (timeElem) {
+            timeElem.textContent = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        // Đếm số đơn hôm nay
+        const today = now.toISOString().slice(0, 10);
+        const todayOrders = invoices.filter(inv => inv.createdAt && inv.createdAt.slice(0, 10) === today);
+        const todayOrdersElem = document.getElementById('today-orders');
+        if (todayOrdersElem) {
+            todayOrdersElem.textContent = todayOrders.length;
+        }
+        
+        // Tổng doanh thu hôm nay
+        const todayRevenue = todayOrders.reduce((sum, inv) => sum + (inv.total || 0), 0);
+        const todayRevenueElem = document.getElementById('today-revenue');
+        if (todayRevenueElem) {
+            todayRevenueElem.textContent = formatPrice(todayRevenue);
+        }
+        
+        // Số lượng hóa đơn chờ
+        const invoiceCountElem = document.getElementById('invoice-count');
+        if (invoiceCountElem) {
+            invoiceCountElem.textContent = invoices.length;
+        }
+        
+        debugLog('✅ Quick stats updated');
+        
+    } catch (error) {
+        debugError('❌ Error updating quick stats:', error);
+    }
+}
+
+function updateCategoryCounts() {
+    try {
+        const menuData = loadMenuData();
+        const allCount = menuData.length;
+        const cafeViet = menuData.filter(i => i.category === 'cafe-viet').length;
+        const cafeY = menuData.filter(i => i.category === 'cafe-y').length;
+        const traTraiCay = menuData.filter(i => i.category === 'tra-trai-cay').length;
+        const khac = menuData.filter(i => i.category === 'khac').length;
+        
+        const setCount = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+        
+        setCount('count-all', allCount);
+        setCount('count-cafe-viet', cafeViet);
+        setCount('count-cafe-y', cafeY);
+        setCount('count-tra-trai-cay', traTraiCay);
+        setCount('count-khac', khac);
+        
+    } catch (error) {
+        debugError('❌ Error updating category counts:', error);
+    }
+}
+
+function updateAllUIStats() {
+    updateQuickStats();
+    updateCategoryCounts();
 }
 
 // =============================================================================
@@ -516,6 +587,8 @@ function renderMenuItems() {
         debugLog(`✅ Menu rendered successfully: ${filteredData.length} items displayed`);
         hideLoadingScreen(300);
         
+        updateCategoryCounts();
+        
     } catch (error) {
         debugError('❌ Error rendering menu items:', error);
         showNotification('Lỗi tải menu: ' + error.message, 'error');
@@ -628,6 +701,9 @@ function updateOrderDisplay() {
         
         debugLog('✅ Order display updated successfully');
         
+        // Cập nhật quick stats và category counts sau khi cập nhật đơn hàng
+        updateAllUIStats();
+        
     } catch (error) {
         debugError('❌ Error updating order display:', error);
     }
@@ -656,863 +732,319 @@ function updateQuantity(itemId, change) {
 // APPLICATION INITIALIZATION
 // =============================================================================
 
-function setupCategoryFilters() {
-    try {
-        debugLog('🔧 Setting up category filters...');
-        const categoryButtons = document.querySelectorAll('.category-btn');
-        debugLog(`Found ${categoryButtons.length} category buttons`);
-        
-        categoryButtons.forEach(btn => {
-            btn.addEventListener('click', handleCategoryClick);
-        });
-        
-    } catch (error) {
-        debugError('❌ Error setting up category filters:', error);
-    }
-}
-
-function handleCategoryClick(event) {
-    try {
-        const btn = event.target.closest('.category-btn');
-        if (!btn) return;
-        
-        const categoryButtons = document.querySelectorAll('.category-btn');
-        
-        // Update active button
-        categoryButtons.forEach(b => {
-            b.classList.remove('active');
-            b.setAttribute('aria-selected', 'false');
-        });
-        btn.classList.add('active');
-        btn.setAttribute('aria-selected', 'true');
-        
-        // Update category and render
-        const newCategory = btn.dataset.category || 'all';
-        if (newCategory !== currentCategory) {
-            currentCategory = newCategory;
-            window.currentCategory = currentCategory;
-            debugLog(`🏷️ Category changed to: ${currentCategory}`);
-            
-            // Show loading for category change
-            showLoadingScreen('Đang lọc danh mục...', true);
-            
-            // Render menu with new category
-            setTimeout(() => {
-                renderMenu();
-            }, 300);
-        }
-        
-    } catch (error) {
-        debugError('❌ Error handling category click:', error);
-        showNotification('Lỗi lọc danh mục: ' + error.message, 'error');
-    }
-}
-
-function initializeAppData() {
-    try {
-        debugLog('📋 Loading application data...');
-        
-        // Load menu data first
-        const menuData = loadMenuData();
-        debugLog(`📊 Menu data validation: ${validateMenuData(menuData) ? 'PASSED' : 'FAILED'}`);
-        
-        // Load other data
-        loadInvoices();
-        
-        // Set up category filters
-        setupCategoryFilters();
-        
-        // Update shift display on startup
-        updateShiftDisplay();
-        
-        return true;
-        
-    } catch (error) {
-        debugError('❌ Error initializing app data:', error);
-        return false;
-    }
-}
-
-function completeAppInitialization() {
-    try {
-        debugLog('🏁 Completing app initialization...');
-        
-        // First hide loading screen properly
-        hideLoadingScreen(0, () => {
-            debugLog('💡 Loading screen hidden, showing app container...');
-            
-            // Show app container
-            if (showAppContainer()) {
-                debugLog('✅ App container is now visible');
-                
-                // Render initial menu after a short delay to ensure DOM is ready
-                setTimeout(() => {
-                    debugLog('🍽️ Starting initial menu render...');
-                    renderMenu();
-                    debugLog('✅ BalanCoffee app initialized successfully');
-                    
-                    // Final check - make sure everything is visible
-                    setTimeout(() => {
-                        const appContainer = document.getElementById('app-container');
-                        const menuGrid = document.getElementById('menu-grid');
-                        
-                        if (appContainer && appContainer.style.display === 'block') {
-                            debugLog('✅ Final check: App container is visible');
-                        } else {
-                            debugError('❌ Final check: App container is not visible');
-                        }
-                        
-                        if (menuGrid && menuGrid.children.length > 0) {
-                            debugLog(`✅ Final check: Menu has ${menuGrid.children.length} items`);
-                        } else {
-                            debugError('❌ Final check: Menu is empty');
-                        }
-                    }, 1000);
-                    
-                }, 300);
-            } else {
-                debugError('❌ Failed to show app container');
-                showNotification('Lỗi hiển thị ứng dụng', 'error');
-            }
-        });
-        
-    } catch (error) {
-        debugError('❌ Error completing app initialization:', error);
-        hideLoadingScreen();
-        showNotification('Lỗi hoàn thành khởi tạo: ' + error.message, 'error');
-    }
-}
-
+/**
+ * Improved initialization function with better error handling and retry logic
+ */
 function initializeApp() {
     try {
-        debugLog('🚀 Initializing BalanCoffee app...');
+        // Prevent multiple simultaneous initializations
+        if (initializationState.isInitializing) {
+            debugLog('⚠️ App is already initializing, skipping...');
+            return;
+        }
+        
+        if (initializationState.isInitialized) {
+            debugLog('✅ App is already initialized, skipping...');
+            return;
+        }
+        
+        initializationState.isInitializing = true;
+        initializationState.attempts++;
+        
+        debugLog(`🚀 Initializing BalanCoffee app (attempt ${initializationState.attempts}/${initializationState.maxAttempts})...`);
+        
+        // Check if we've exceeded max attempts
+        if (initializationState.attempts > initializationState.maxAttempts) {
+            debugError('❌ Max initialization attempts exceeded');
+            showNotification('Không thể khởi tạo ứng dụng. Vui lòng tải lại trang.', 'error');
+            initializationState.isInitializing = false;
+            return;
+        }
+        
         showLoadingScreen('Đang khởi tạo ứng dụng...', true);
         
         // Wait for DOM to be fully ready
         if (document.readyState === 'loading') {
             debugLog('⏳ DOM still loading, waiting...');
+            initializationState.isInitializing = false;
             hideLoadingScreen();
+            document.addEventListener('DOMContentLoaded', initializeApp);
             return;
         }
         
-        // Wait for data to be ready before proceeding
+        // Use timeout to ensure all scripts are loaded
+        setTimeout(() => {
+            try {
+                performInitialization();
+            } catch (error) {
+                handleInitializationError(error);
+            }
+        }, 100);
+        
+    } catch (error) {
+        handleInitializationError(error);
+    }
+}
+
+/**
+ * Perform the actual initialization steps
+ */
+function performInitialization() {
+    try {
+        debugLog('🔍 Starting initialization steps...');
+        
+        // Step 1: Check if app container exists
+        const appContainer = document.getElementById('app-container');
+        if (!appContainer) {
+            throw new Error('App container not found in DOM');
+        }
+        
+        // Step 2: Check required DOM elements
+        debugLog('🔍 Checking required DOM elements...');
+        if (!checkRequiredElements()) {
+            throw new Error('Required DOM elements are missing');
+        }
+        
+        // Step 3: Wait for data to be ready
         waitForDataReady(() => {
             try {
-                // Check if app container exists
-                const appContainer = document.getElementById('app-container');
-                if (!appContainer) {
-                    debugError('❌ App container not found');
-                    hideLoadingScreen();
-                    return;
-                }
-                
-                // Check required DOM elements
-                debugLog('🔍 Checking required DOM elements...');
-                if (!checkRequiredElements()) {
-                    debugError('❌ Some required DOM elements are missing');
-                    showNotification('Lỗi: Thiếu elements cần thiết trong DOM', 'error');
-                    hideLoadingScreen();
-                    return;
-                }
-                
-                // Initialize data loading
+                // Step 4: Initialize data loading
                 if (!initializeAppData()) {
-                    showNotification('Lỗi khởi tạo dữ liệu ứng dụng', 'error');
-                    hideLoadingScreen();
-                    return;
+                    throw new Error('Failed to initialize app data');
                 }
-                
-                // Complete app initialization
+                  // Step 5: Complete initialization
                 completeAppInitialization();
                 
+                // Mark as successfully initialized
+                initializationState.isInitialized = true;
+                initializationState.isInitializing = false;
+                initializationState.lastError = null;
+                
+                debugLog('✅ App initialization completed successfully');
+                
             } catch (error) {
-                debugError('❌ Error in data ready callback:', error);
-                showNotification('Lỗi khởi tạo: ' + error.message, 'error');
-                hideLoadingScreen();
+                handleInitializationError(error);
+            }        });
+        
+    } catch (error) {
+        handleInitializationError(error);
+    }
+}
+
+/**
+ * Handle initialization errors with retry logic
+ */
+function handleInitializationError(error) {
+    debugError('❌ Error during initialization:', error);
+    initializationState.lastError = error;
+    initializationState.isInitializing = false;
+    
+    hideLoadingScreen();
+    
+    if (initializationState.attempts < initializationState.maxAttempts) {
+        debugLog(`🔄 Retrying initialization in 2 seconds... (attempt ${initializationState.attempts + 1}/${initializationState.maxAttempts})`);
+        showNotification('Đang thử khởi tạo lại...', 'warning');
+        
+        setTimeout(() => {
+            initializeApp();
+        }, 2000);
+    } else {
+        debugError('❌ All initialization attempts failed');
+        showNotification('Không thể khởi tạo ứng dụng. Vui lòng tải lại trang.', 'error');
+        
+        // Show emergency fallback
+        setTimeout(() => {
+            if (window.emergencyShow) {
+                window.emergencyShow();
+            }
+        }, 3000);
+    }
+}
+
+/**
+ * Improved data initialization with better error handling
+ */
+function initializeAppData() {
+    try {
+        debugLog('📋 Loading application data...');
+        
+        // Load menu data first with validation
+        const menuData = loadMenuData();
+        if (!menuData || !Array.isArray(menuData) || menuData.length === 0) {
+            debugError('❌ Invalid menu data loaded');
+            throw new Error('Menu data is invalid or empty');
+        }
+        
+        const isValidMenuData = validateMenuData(menuData);
+        debugLog(`📊 Menu data validation: ${isValidMenuData ? 'PASSED' : 'FAILED'}`);
+        
+        if (!isValidMenuData) {
+            debugError('❌ Menu data validation failed');
+            throw new Error('Menu data structure is invalid');
+        }
+        
+        // Load invoices with error handling
+        try {
+            loadInvoices();
+            debugLog('✅ Invoices loaded successfully');
+        } catch (invoiceError) {
+            debugError('⚠️ Error loading invoices, using empty array:', invoiceError);
+            invoices = [];
+            window.invoices = invoices;
+        }
+        
+        // Set up category filters with error handling
+        try {
+            setupCategoryFilters();
+            debugLog('✅ Category filters set up successfully');
+        } catch (filterError) {
+            debugError('⚠️ Error setting up category filters:', filterError);
+            // Non-critical error, continue initialization
+        }
+        
+        // Update shift display with error handling
+        try {
+            updateShiftDisplay();
+            debugLog('✅ Shift display updated successfully');
+        } catch (shiftError) {
+            debugError('⚠️ Error updating shift display:', shiftError);
+            // Non-critical error, continue initialization
+        }
+        
+        // Update initial UI stats
+        try {
+            updateAllUIStats();
+            debugLog('✅ UI stats updated successfully');
+        } catch (statsError) {
+            debugError('⚠️ Error updating UI stats:', statsError);
+            // Non-critical error, continue initialization
+        }
+        
+        return true;
+        
+    } catch (error) {
+        debugError('❌ Critical error initializing app data:', error);
+        return false;
+    }
+}
+
+/**
+ * Improved completion function with better timing and error handling
+ */
+function completeAppInitialization() {
+    try {
+        debugLog('🏁 Completing app initialization...');
+        
+        // Hide loading screen with proper timing
+        hideLoadingScreen(0, () => {
+            debugLog('💡 Loading screen hidden, showing app container...');
+            
+            try {
+                // Show app container
+                if (!showAppContainer()) {
+                    throw new Error('Failed to show app container');
+                }
+                
+                debugLog('✅ App container is now visible');
+                
+                // Render initial menu with proper delay
+                setTimeout(() => {
+                    try {
+                        debugLog('🍽️ Starting initial menu render...');
+                        renderMenu();
+                        
+                        // Final verification after a longer delay
+                        setTimeout(() => {
+                            verifyInitializationSuccess();
+                        }, 1500);
+                        
+                    } catch (menuError) {
+                        debugError('❌ Error rendering initial menu:', menuError);
+                        throw menuError;
+                    }
+                }, 500); // Increased delay for better stability
+                
+            } catch (containerError) {
+                debugError('❌ Error showing app container:', containerError);
+                showNotification('Lỗi hiển thị ứng dụng', 'error');
+                throw containerError;
             }
         });
         
     } catch (error) {
-        debugError('❌ Error initializing app:', error);
-        showNotification('Lỗi khởi tạo ứng dụng: ' + error.message, 'error');
-        hideLoadingScreen();
+        debugError('❌ Error completing app initialization:', error);
+        handleInitializationError(error);
     }
 }
 
-// =============================================================================
-// SIDEBAR MANAGEMENT FUNCTIONS
-// =============================================================================
-
-function toggleSidebar() {
+/**
+ * Verify that initialization was successful
+ */
+function verifyInitializationSuccess() {
     try {
-        const sidebar = document.getElementById('sidebar');
-        if (!sidebar) {
-            debugError('❌ Sidebar element not found');
-            return;
-        }
-        
-        const isCollapsed = sidebar.classList.contains('collapsed');
-        
-        if (isCollapsed) {
-            sidebar.classList.remove('collapsed');
-            sidebar.classList.add('expanded');
-            debugLog('📂 Sidebar expanded');
-        } else {
-            sidebar.classList.add('collapsed');
-            sidebar.classList.remove('expanded');
-            debugLog('📁 Sidebar collapsed');
-        }
-        
-        // Update invoice list when sidebar opens
-        if (!isCollapsed) {
-            updateInvoiceList();
-        }
-        
-    } catch (error) {
-        debugError('❌ Error toggling sidebar:', error);
-    }
-}
-
-function handleBackdropKeydown(event) {
-    if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        toggleSidebar();
-    }
-}
-
-function updateInvoiceList() {
-    try {
-        const container = document.getElementById('invoice-list');
-        if (!container) {
-            debugError('❌ Invoice list container not found');
-            return;
-        }
-        
-        if (invoices.length === 0) {
-            container.innerHTML = '<p class="empty-invoices">Chưa có hóa đơn nào</p>';
-            return;
-        }
-        
-        container.innerHTML = invoices.map(invoice => `
-            <div class="invoice-item" data-id="${invoice.id}">
-                <div class="invoice-info">
-                    <strong>Hóa đơn #${invoice.id}</strong>
-                    <div class="invoice-details">
-                        <span class="invoice-time">${formatDateTime(invoice.createdAt)}</span>
-                        <span class="invoice-total">${formatPrice(invoice.total)}</span>
-                    </div>
-                    <div class="invoice-items">
-                        ${invoice.items.length} sản phẩm
-                    </div>
-                </div>
-                <div class="invoice-actions">
-                    <button class="btn btn-sm btn-primary" onclick="viewInvoice(${invoice.id})">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-sm btn-success" onclick="printInvoice(${invoice.id})">
-                        <i class="fas fa-print"></i>
-                    </button>
-                </div>
-            </div>
-        `).join('');
-        
-        debugLog(`✅ Invoice list updated with ${invoices.length} invoices`);
-        
-    } catch (error) {
-        debugError('❌ Error updating invoice list:', error);
-    }
-}
-
-function viewInvoice(invoiceId) {
-    try {
-        const invoice = invoices.find(inv => inv.id === invoiceId);
-        if (!invoice) {
-            showNotification('Không tìm thấy hóa đơn', 'error');
-            return;
-        }
-        
-        // Open invoice in modal or show details
-        alert(`Hóa đơn #${invoice.id}\nTổng: ${formatPrice(invoice.total)}\nThời gian: ${formatDateTime(invoice.createdAt)}`);
-        
-    } catch (error) {
-        debugError('❌ Error viewing invoice:', error);
-        showNotification('Lỗi xem hóa đơn: ' + error.message, 'error');
-    }
-}
-
-function printInvoice(invoiceId) {
-    try {
-        const invoice = invoices.find(inv => inv.id === invoiceId);
-        if (!invoice) {
-            showNotification('Không tìm thấy hóa đơn', 'error');
-            return;
-        }
-        
-        // Simple print simulation
-        const printContent = `
-BALANCOFFEE
-Hóa đơn #${invoice.id}
-${formatDateTime(invoice.createdAt)}
-${'='.repeat(30)}
-${invoice.items.map(item => `${item.name} x${item.quantity}: ${formatPrice(item.price * item.quantity)}`).join('\n')}
-${'='.repeat(30)}
-Tổng cộng: ${formatPrice(invoice.total)}
-        `;
-        
-        console.log('🖨️ Printing invoice:', printContent);
-        showNotification('Hóa đơn đã được in', 'success');
-        
-    } catch (error) {
-        debugError('❌ Error printing invoice:', error);
-        showNotification('Lỗi in hóa đơn: ' + error.message, 'error');
-    }
-}
-
-// =============================================================================
-// ADMIN MANAGEMENT FUNCTIONS
-// =============================================================================
-
-function toggleAdminMode() {
-    try {
-        isAdminMode = !isAdminMode;
-        window.isAdminMode = isAdminMode;
-        
-        const adminBtn = document.querySelector('.btn.btn-secondary[onclick*="toggleAdminMode"]');
-        const sidebarControls = document.getElementById('sidebar-controls');
-        const adminSection = document.getElementById('admin-section');
-        
-        // Update admin button appearance
-        if (adminBtn) {
-            adminBtn.classList.toggle('active', isAdminMode);
-            const btnText = adminBtn.querySelector('.btn-text');
-            const btnIcon = adminBtn.querySelector('i');
-            
-            if (btnText && btnIcon) {
-                if (isAdminMode) {
-                    btnIcon.className = 'fas fa-user-shield';
-                    btnText.textContent = 'Thoát Admin';
-                } else {
-                    btnIcon.className = 'fas fa-chart-bar';
-                    btnText.textContent = 'Quản lý';
-                }
-            }
-        }
-        
-        // Show/hide admin section
-        if (adminSection) {
-            adminSection.style.display = isAdminMode ? 'block' : 'none';
-            debugLog(`🎛️ Admin section ${isAdminMode ? 'shown' : 'hidden'}`);
-        }
-        
-        // Show/hide sidebar admin controls
-        if (sidebarControls) {
-            sidebarControls.style.display = isAdminMode ? 'block' : 'none';
-        }
-        
-        showNotification(
-            isAdminMode ? 'Đã vào chế độ quản lý' : 'Đã thoát chế độ quản lý',
-            isAdminMode ? 'success' : 'info'
-        );
-        
-        debugLog(`🔐 Admin mode: ${isAdminMode ? 'ON' : 'OFF'}`);
-        
-    } catch (error) {
-        debugError('❌ Error toggling admin mode:', error);
-        showNotification('Lỗi chuyển chế độ quản lý: ' + error.message, 'error');
-    }
-}
-
-function clearAllInvoices() {
-    try {
-        if (!isAdminMode) {
-            showNotification('Cần vào chế độ quản lý để thực hiện', 'warning');
-            return;
-        }
-        
-        if (confirm('Bạn có chắc muốn xóa tất cả hóa đơn?')) {
-            invoices = [];
-            window.invoices = invoices;
-            saveInvoices();
-            updateInvoiceList();
-            showNotification('Đã xóa tất cả hóa đơn', 'success');
-            debugLog('🗑️ All invoices cleared');
-        }
-        
-    } catch (error) {
-        debugError('❌ Error clearing invoices:', error);
-        showNotification('Lỗi xóa hóa đơn: ' + error.message, 'error');
-    }
-}
-
-function exportData() {
-    try {
-        if (!isAdminMode) {
-            showNotification('Cần vào chế độ quản lý để thực hiện', 'warning');
-            return;
-        }
-        
-        const data = {
-            invoices: invoices,
-            exportDate: new Date().toISOString(),
-            version: '8.1'
-        };
-        
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `balancoffee-data-${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        
-        showNotification('Dữ liệu đã được xuất', 'success');
-        debugLog('📤 Data exported');
-        
-    } catch (error) {
-        debugError('❌ Error exporting data:', error);
-        showNotification('Lỗi xuất dữ liệu: ' + error.message, 'error');
-    }
-}
-
-// =============================================================================
-// ORDER MANAGEMENT FUNCTIONS
-// =============================================================================
-
-function openOrderModal() {
-    try {
-        if (currentOrder.length === 0) {
-            showNotification('Đơn hàng trống', 'warning');
-            return;
-        }
-        
-        const modal = document.getElementById('order-modal');
-        if (!modal) {
-            debugError('❌ Order modal not found');
-            return;
-        }
-        
-        // Update order display in modal
-        updateOrderDisplay();
-        
-        // Show modal
-        modal.style.display = 'flex';
-        modal.classList.add('active');
-        
-        debugLog('📋 Order modal opened');
-        
-    } catch (error) {
-        debugError('❌ Error opening order modal:', error);
-        showNotification('Lỗi mở modal đơn hàng: ' + error.message, 'error');
-    }
-}
-
-function closeOrderModal() {
-    try {
-        const modal = document.getElementById('order-modal');
-        if (modal) {
-            modal.style.display = 'none';
-            modal.classList.remove('active');
-            debugLog('❌ Order modal closed');
-        }
-    } catch (error) {
-        debugError('❌ Error closing order modal:', error);
-    }
-}
-
-function confirmOrder() {
-    try {
-        if (currentOrder.length === 0) {
-            showNotification('Đơn hàng trống', 'warning');
-            return;
-        }
-        
-        // Create invoice
-        const invoice = {
-            id: Date.now(),
-            items: [...currentOrder],
-            total: currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-            createdAt: new Date().toISOString(),
-            status: 'completed'
-        };
-        
-        // Save invoice
-        invoices.push(invoice);
-        window.invoices = invoices;
-        saveInvoices();
-        
-        // Clear current order
-        currentOrder = [];
-        window.currentOrder = currentOrder;
-        updateOrderDisplay();
-        
-        // Close modal
-        closeOrderModal();
-        
-        // Update invoice list
-        updateInvoiceList();
-        
-        showNotification(`Hóa đơn #${invoice.id} đã được tạo`, 'success');
-        debugLog(`✅ Order confirmed, invoice #${invoice.id} created`);
-        
-    } catch (error) {
-        debugError('❌ Error confirming order:', error);
-        showNotification('Lỗi xác nhận đơn hàng: ' + error.message, 'error');
-    }
-}
-
-// =============================================================================
-// PAYMENT FUNCTIONS
-// =============================================================================
-
-function proceedToPayment() {
-    try {
-        if (!currentInvoiceId) {
-            showNotification('Không có hóa đơn nào được chọn', 'warning');
-            return;
-        }
-        
-        const invoice = invoices.find(inv => inv.id === currentInvoiceId);
-        if (!invoice) {
-            showNotification('Không tìm thấy hóa đơn', 'error');
-            return;
-        }
-        
-        // Open payment modal
-        const paymentModal = document.getElementById('payment-modal');
-        if (paymentModal) {
-            paymentModal.style.display = 'flex';
-            paymentModal.classList.add('active');
-            
-            // Update payment summary
-            const paymentSummary = document.getElementById('payment-order-summary');
-            if (paymentSummary) {
-                paymentSummary.innerHTML = `
-                    <div class="summary-item">
-                        <span>Tổng tiền:</span>
-                        <strong>${formatPrice(invoice.total)}</strong>
-                    </div>
-                    <div class="summary-item">
-                        <span>Phương thức:</span>
-                        <strong>Tiền mặt</strong>
-                    </div>
-                `;
-            }
-            
-            debugLog('💰 Payment modal opened');
-        }
-        
-    } catch (error) {
-        debugError('❌ Error proceeding to payment:', error);
-        showNotification('Lỗi chuyển đến thanh toán: ' + error.message, 'error');
-    }
-}
-
-function closePaymentModal() {
-    try {
-        const paymentModal = document.getElementById('payment-modal');
-        if (paymentModal) {
-            paymentModal.style.display = 'none';
-            paymentModal.classList.remove('active');
-            debugLog('❌ Payment modal closed');
-        }
-    } catch (error) {
-        debugError('❌ Error closing payment modal:', error);
-    }
-}
-
-// =============================================================================
-// NEW SHIFT FUNCTIONS
-// =============================================================================
-
-function startNewShift() {
-    try {
-        if (!isAdminMode) {
-            showNotification('Cần vào chế độ quản lý để thực hiện', 'warning');
-            return;
-        }
-        
-        const employeeName = prompt('Nhập tên nhân viên:');
-        if (!employeeName) return;
-        
-        const shiftNote = prompt('Ghi chú ca làm việc (không bắt buộc):') || '';
-        
-        shiftStartTime = new Date().toISOString();
-        currentShiftEmployee = employeeName;
-        currentShiftNote = shiftNote;
-        
-        window.shiftStartTime = shiftStartTime;
-        window.currentShiftEmployee = currentShiftEmployee;
-        window.currentShiftNote = currentShiftNote;
-        
-        // Update display
-        updateShiftDisplay();
-        
-        showNotification(`Ca làm việc mới bắt đầu cho ${employeeName}`, 'success');
-        debugLog(`🏁 New shift started for ${employeeName}`);
-        
-    } catch (error) {
-        debugError('❌ Error starting new shift:', error);
-        showNotification('Lỗi bắt đầu ca mới: ' + error.message, 'error');
-    }
-}
-
-function viewCurrentShift() {
-    try {
-        if (!shiftStartTime) {
-            showNotification('Chưa có ca làm việc nào được bắt đầu', 'warning');
-            return;
-        }
-        
-        const startTime = new Date(shiftStartTime);
-        const currentTime = new Date();
-        const duration = Math.floor((currentTime - startTime) / (1000 * 60)); // minutes
-        
-        const shiftOrders = invoices.filter(invoice => 
-            new Date(invoice.createdAt) >= startTime
-        );
-        
-        const totalRevenue = shiftOrders.reduce((sum, invoice) => sum + invoice.total, 0);
-        
-        alert(`Ca làm việc hiện tại:
-Nhân viên: ${currentShiftEmployee || 'Không xác định'}
-Bắt đầu: ${formatDateTime(shiftStartTime)}
-Thời gian làm việc: ${duration} phút
-Số đơn hàng: ${shiftOrders.length}
-Doanh thu: ${formatPrice(totalRevenue)}`);
-        
-    } catch (error) {
-        debugError('❌ Error viewing current shift:', error);
-        showNotification('Lỗi xem ca hiện tại: ' + error.message, 'error');
-    }
-}
-
-function endShift() {
-    try {
-        if (!isAdminMode) {
-            showNotification('Cần vào chế độ quản lý để thực hiện', 'warning');
-            return;
-        }
-        
-        if (!shiftStartTime) {
-            showNotification('Chưa có ca làm việc nào để kết thúc', 'warning');
-            return;
-        }
-        
-        if (confirm('Bạn có chắc muốn kết thúc ca làm việc hiện tại?')) {
-            const endTime = new Date();
-            const startTime = new Date(shiftStartTime);
-            const duration = Math.floor((endTime - startTime) / (1000 * 60));
-            
-            const shiftOrders = invoices.filter(invoice => 
-                new Date(invoice.createdAt) >= startTime
-            );
-            
-            const totalRevenue = shiftOrders.reduce((sum, invoice) => sum + invoice.total, 0);
-            
-            // Log shift end
-            debugLog(`📊 Shift ended: ${duration} minutes, ${shiftOrders.length} orders, ${formatPrice(totalRevenue)} revenue`);
-            
-            // Reset shift data
-            shiftStartTime = null;
-            currentShiftEmployee = null;
-            currentShiftNote = null;
-            
-            window.shiftStartTime = null;
-            window.currentShiftEmployee = null;
-            window.currentShiftNote = null;
-            
-            updateShiftDisplay();
-            
-            showNotification(`Ca làm việc đã kết thúc. Doanh thu: ${formatPrice(totalRevenue)}`, 'success');
-        }
-        
-    } catch (error) {
-        debugError('❌ Error ending shift:', error);
-        showNotification('Lỗi kết thúc ca: ' + error.message, 'error');
-    }
-}
-
-function updateShiftDisplay() {
-    try {
-        const shiftStartDisplay = document.getElementById('shift-start-display');
-        const shiftEmployeeDisplay = document.getElementById('shift-employee-display');
-        const currentShiftOrders = document.getElementById('current-shift-orders');
-        const currentShiftRevenue = document.getElementById('current-shift-revenue');
-        const currentShiftBestseller = document.getElementById('current-shift-bestseller');
-        
-        if (shiftStartTime) {
-            if (shiftStartDisplay) {
-                shiftStartDisplay.textContent = formatDateTime(shiftStartTime);
-            }
-            if (shiftEmployeeDisplay) {
-                shiftEmployeeDisplay.textContent = currentShiftEmployee || 'Không xác định';
-            }
-            
-            // Calculate shift statistics
-            const startTime = new Date(shiftStartTime);
-            const shiftOrders = invoices.filter(invoice => 
-                new Date(invoice.createdAt) >= startTime
-            );
-            
-            const totalRevenue = shiftOrders.reduce((sum, invoice) => sum + invoice.total, 0);
-            
-            if (currentShiftOrders) {
-                currentShiftOrders.textContent = shiftOrders.length.toString();
-            }
-            if (currentShiftRevenue) {
-                currentShiftRevenue.textContent = formatPrice(totalRevenue);
-            }
-            
-            // Find bestseller
-            const itemCounts = {};
-            shiftOrders.forEach(invoice => {
-                invoice.items.forEach(item => {
-                    itemCounts[item.name] = (itemCounts[item.name] || 0) + item.quantity;
-                });
-            });
-            
-            const bestseller = Object.keys(itemCounts).reduce((a, b) => 
-                itemCounts[a] > itemCounts[b] ? a : b, '-'
-            );
-            
-            if (currentShiftBestseller) {
-                currentShiftBestseller.textContent = bestseller;
-            }
-            
-        } else {
-            // No active shift
-            if (shiftStartDisplay) shiftStartDisplay.textContent = '--';
-            if (shiftEmployeeDisplay) shiftEmployeeDisplay.textContent = '--';
-            if (currentShiftOrders) currentShiftOrders.textContent = '0';
-            if (currentShiftRevenue) currentShiftRevenue.textContent = '0₫';
-            if (currentShiftBestseller) currentShiftBestseller.textContent = '-';
-        }
-        
-    } catch (error) {
-        debugError('❌ Error updating shift display:', error);
-    }
-}
-
-// =============================================================================
-// EXPOSE FUNCTIONS TO WINDOW
-// =============================================================================
-
-// Expose all new functions to window
-window.showAllCategories = showAllCategories;
-window.startNewShift = startNewShift;
-window.viewCurrentShift = viewCurrentShift;
-window.endShift = endShift;
-window.updateShiftDisplay = updateShiftDisplay;
-window.createNewInvoice = createNewInvoice;
-window.deselectInvoice = deselectInvoice;
-window.deleteInvoiceById = deleteInvoiceById;
-window.filterInvoices = filterInvoices;
-window.proceedToPayment = proceedToPayment;
-window.closePaymentModal = closePaymentModal;
-window.deleteInvoice = deleteInvoice;
-
-// Expose key functions to window for compatibility
-window.formatPrice = formatPrice;
-window.formatDateTime = formatDateTime;
-window.showNotification = showNotification;
-window.showLoadingScreen = showLoadingScreen;
-window.hideLoadingScreen = hideLoadingScreen;
-window.renderMenu = renderMenu;
-window.renderMenuItems = renderMenuItems;
-window.addToOrder = addToOrder;
-window.updateQuantity = updateQuantity;
-window.initializeApp = initializeApp;
-window.loadMenuData = loadMenuData;
-window.validateMenuData = validateMenuData;
-window.checkRequiredElements = checkRequiredElements;
-window.updateOrderDisplay = updateOrderDisplay;
-window.showAppContainer = showAppContainer;
-window.waitForDataReady = waitForDataReady;
-window.setupCategoryFilters = setupCategoryFilters;
-window.handleCategoryClick = handleCategoryClick;
-window.initializeAppData = initializeAppData;
-window.completeAppInitialization = completeAppInitialization;
-window.forceShowApp = forceShowApp;
-window.debugVisibility = debugVisibility;
-
-// Sidebar functions
-window.toggleSidebar = toggleSidebar;
-window.handleBackdropKeydown = handleBackdropKeydown;
-window.updateInvoiceList = updateInvoiceList;
-window.viewInvoice = viewInvoice;
-window.printInvoice = printInvoice;
-
-// Admin functions
-window.toggleAdminMode = toggleAdminMode;
-window.clearAllInvoices = clearAllInvoices;
-window.exportData = exportData;
-
-// Order management functions
-window.openOrderModal = openOrderModal;
-window.closeOrderModal = closeOrderModal;
-window.confirmOrder = confirmOrder;
-
-// Diagnostic function for debugging
-window.debugSystem = function() {
-    console.log('=== SYSTEM DEBUG INFO ===');
-    console.log('App initialized:', typeof initializeApp === 'function');
-    console.log('Menu data available:', !!window.menuData);
-    console.log('Menu data valid:', validateMenuData(window.menuData || []));
-    console.log('Current order items:', currentOrder.length);
-    console.log('Required elements check:', checkRequiredElements());
-    console.log('Loading functions:', {
-        showLoadingScreen: typeof showLoadingScreen === 'function',
-        hideLoadingScreen: typeof hideLoadingScreen === 'function'
-    });
-    console.log('Sidebar functions:', {
-        toggleSidebar: typeof toggleSidebar === 'function',
-        updateInvoiceList: typeof updateInvoiceList === 'function'
-    });
-    console.log('Admin functions:', {
-        toggleAdminMode: typeof toggleAdminMode === 'function',
-        startNewShift: typeof startNewShift === 'function'
-    });
-    console.log('========================');
-};
-
-// =============================================================================
-// INITIALIZATION
-// =============================================================================
-
-// Initialize when DOM is ready
-ensureDOMReady(() => {
-    debugLog('🎯 DOM is ready, starting initialization...');
-    initializeApp();
-    
-    // Fallback: If app is not visible after 5 seconds, force show it
-    setTimeout(() => {
         const appContainer = document.getElementById('app-container');
-        const loadingScreen = document.getElementById('loading-screen');
+        const menuGrid = document.getElementById('menu-grid');
         
-        const appVisible = appContainer && window.getComputedStyle(appContainer).display !== 'none';
-        const loadingVisible = loadingScreen && window.getComputedStyle(loadingScreen).display !== 'none';
+        let issues = [];
         
-        if (!appVisible || loadingVisible) {
-            console.warn('⚠️ App not visible after 5 seconds, forcing display...');
-            forceShowApp();
-        } else {
-            debugLog('✅ App is properly visible');
+        // Check app container visibility
+        if (!appContainer || window.getComputedStyle(appContainer).display === 'none') {
+            issues.push('App container is not visible');
         }
-    }, 5000);
-});
+        
+        // Check menu content
+        if (!menuGrid || menuGrid.children.length === 0) {
+            issues.push('Menu is empty');
+        }
+        
+        // Check loading screen is hidden
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen && window.getComputedStyle(loadingScreen).display !== 'none') {
+            issues.push('Loading screen is still visible');
+        }
+        
+        if (issues.length > 0) {
+            debugError('❌ Initialization verification failed:', issues);
+            
+            // Try emergency fix
+            if (window.emergencyShow) {
+                debugLog('🚨 Running emergency show...');
+                window.emergencyShow();
+            }
+        } else {
+            debugLog('✅ Initialization verification passed - App is ready!');
+            showNotification('BalanCoffee sẵn sàng!', 'success');
+        }
+        
+    } catch (error) {
+        debugError('❌ Error verifying initialization:', error);
+    }
+}
 
-// Global error handlers
-window.addEventListener('error', function(e) {
-    debugError('❌ Global error:', e.error);
-    showNotification('Đã xảy ra lỗi không mong muốn', 'error');
-});
+/**
+ * Reset initialization state (for debugging)
+ */
+function resetInitialization() {
+    const newState = {
+        isInitializing: false,
+        isInitialized: false,
+        attempts: 0,
+        maxAttempts: 3,
+        lastError: null
+    };
+    
+    Object.assign(initializationState, newState);
+    window.initializationState = initializationState;
+    debugLog('🔄 Initialization state reset');
+}
 
-window.addEventListener('unhandledrejection', function(e) {
-    debugError('❌ Unhandled promise rejection:', e.reason);
-    showNotification('Đã xảy ra lỗi không mong muốn', 'error');
-});
+// Expose reset function for debugging
+window.resetInitialization = resetInitialization;
+window.verifyInitializationSuccess = verifyInitializationSuccess;
 
-debugLog('📋 BalanCoffee script loaded - Version 8.2 with All Issues Fixed');
+// =============================================================================
+// EMERGENCY FUNCTIONS (RESTORED)
+// =============================================================================
 
 function forceShowApp() {
     try {
@@ -1608,6 +1140,7 @@ function debugVisibility() {
     
     console.log('Current Order:', currentOrder.length);
     console.log('Menu Data Available:', !!window.menuData);
+    console.log('Initialization State:', initializationState);
     console.log('========================');
 }
 
@@ -1653,7 +1186,7 @@ window.emergencyShow = function() {
                     <p>${item.description}</p>
                     <span class="price">${item.price.toLocaleString('vi-VN')}₫</span>
                 </div>
-                <button class="add-btn" onclick="window.emergencyAddToOrder && window.emergencyAddToOrder(${item.id})" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer;">
+                <button class="add-btn" onclick="addToOrder(${item.id})" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 3px; cursor: pointer;">
                     <i class="fas fa-plus"></i>
                     <span>Thêm</span>
                 </button>
@@ -1665,7 +1198,107 @@ window.emergencyShow = function() {
     console.log('🚨 EMERGENCY SHOW COMPLETED');
 };
 
-window.emergencyAddToOrder = function(itemId) {
-    console.log('Adding item:', itemId);
-    alert('Item added to order: ' + itemId);
+// =============================================================================
+// DIAGNOSTIC FUNCTION
+// =============================================================================
+
+// Diagnostic function for debugging
+window.debugSystem = function() {
+    console.log('=== SYSTEM DEBUG INFO ===');
+    console.log('App initialized:', initializationState.isInitialized);
+    console.log('Is initializing:', initializationState.isInitializing);
+    console.log('Initialization attempts:', initializationState.attempts);
+    console.log('Last error:', initializationState.lastError);
+    console.log('Menu data available:', !!window.menuData);
+    console.log('Menu data valid:', validateMenuData(window.menuData || []));
+    console.log('Current order items:', currentOrder.length);
+    console.log('Current invoices:', invoices.length);
+    console.log('Current shift employee:', currentShiftEmployee);
+    console.log('Required elements check:', checkRequiredElements());
+    console.log('Loading functions:', {
+        showLoadingScreen: typeof showLoadingScreen === 'function',
+        hideLoadingScreen: typeof hideLoadingScreen === 'function'
+    });
+    console.log('Core functions:', {
+        initializeApp: typeof initializeApp === 'function',
+        forceShowApp: typeof forceShowApp === 'function',
+        emergencyShow: typeof window.emergencyShow === 'function'
+    });
+    console.log('========================');
 };
+
+// =============================================================================
+// FINAL WINDOW EXPORTS
+// =============================================================================
+
+// Expose all critical functions to window
+window.forceShowApp = forceShowApp;
+window.debugVisibility = debugVisibility;
+window.initializeApp = initializeApp;
+window.resetInitialization = resetInitialization;
+window.verifyInitializationSuccess = verifyInitializationSuccess;
+
+// =============================================================================
+// FINAL INITIALIZATION CALL
+// =============================================================================
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    debugLog('🎯 DOM ContentLoaded event fired, starting initialization...');
+    initializeApp();
+});
+
+// Fallback: If DOMContentLoaded already fired
+if (document.readyState !== 'loading') {
+    debugLog('🎯 DOM already ready, starting initialization immediately...');
+    setTimeout(initializeApp, 100);
+}
+
+// Emergency fallback: If app is not visible after 10 seconds, force show it
+setTimeout(() => {
+    if (!initializationState.isInitialized) {
+        console.warn('⚠️ App not initialized after 10 seconds, running emergency procedures...');
+        
+        if (window.emergencyShow) {
+            window.emergencyShow();
+        }
+        
+        if (window.forceShowApp) {
+            window.forceShowApp();
+        }
+    }
+}, 10000);
+
+// Global error handlers for unhandled errors
+window.addEventListener('error', function(e) {
+    debugError('❌ Global error:', e.error);
+    
+    // If error occurs during initialization, handle it
+    if (initializationState.isInitializing) {
+        handleInitializationError(e.error);
+    } else {
+        showNotification('Đã xảy ra lỗi không mong muốn', 'error');
+    }
+});
+
+window.addEventListener('unhandledrejection', function(e) {
+    debugError('❌ Unhandled promise rejection:', e.reason);
+    
+    // If error occurs during initialization, handle it
+    if (initializationState.isInitializing) {
+        handleInitializationError(e.reason);
+    } else {
+        showNotification('Đã xảy ra lỗi không mong muốn', 'error');
+    }
+});
+
+// Update quick stats every minute
+setInterval(() => {
+    try {
+        updateQuickStats();
+    } catch (error) {
+        debugError('❌ Error updating quick stats:', error);
+    }
+}, 60000);
+
+debugLog('📋 BalanCoffee script loaded - Version 8.3 with Improved Initialization System');

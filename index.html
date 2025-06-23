@@ -3,142 +3,307 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>BalanCoffee - Hệ Thống Đặt Món POS</title>
-    <meta name="description" content="Hệ thống POS quản lý đơn hàng và thanh toán cho quán cà phê BalanCoffee">
-    <meta name="theme-color" content="#8B4513">
+    <title>BalanCoffee - Hệ Thống POS Hiện Đại</title>
+    <meta name="description" content="Hệ thống POS quản lý đơn hàng và thanh toán cho quán cà phê BalanCoffee - Giao diện hiện đại, responsive và thân thiện người dùng">
+    <meta name="theme-color" content="#6F4E37">
+    <meta name="author" content="BalanCoffee Team">
+    <meta name="keywords" content="POS, coffee, quán cà phê, đặt món, thanh toán">
     
-    <!-- Preconnect for performance -->
-    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <!-- Performance & SEO -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
     
-    <!-- Favicon with multiple sizes -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
-    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
-    <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+    <!-- Enhanced Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%236F4E37'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>☕</text></svg>">
+    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%236F4E37'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>☕</text></svg>">
+    <link rel="icon" type="image/png" sizes="32x32" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%236F4E37'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>☕</text></svg>">    <!-- Optimized Styles Loading -->
+    <link rel="preload" href="styles.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="styles.css"></noscript>
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
     
-    <!-- Styles -->
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
-    <!-- PWA Manifest -->
+    <!-- PWA Enhanced -->
     <link rel="manifest" href="manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="BalanCoffee">
     
-    <!-- iOS PWA -->
+    <!-- iOS PWA Enhanced -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="BalanCoffee POS">
+    <meta name="format-detection" content="telephone=no">
+    
+    <!-- Critical CSS for loading screen -->
+    <style>
+        .loading-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#6F4E37 0%,#8B6F47 100%);display:flex;align-items:center;justify-content:center;z-index:9999;color:white}.loading-content{text-align:center}.loading-logo{display:flex;align-items:center;justify-content:center;gap:1rem;margin-bottom:2rem}.loading-logo i{font-size:3rem}.loading-logo h2{font-size:2rem;font-weight:600}.loading-spinner{width:40px;height:40px;border:4px solid rgba(255,255,255,0.3);border-radius:50%;border-top-color:white;animation:spin 1s ease-in-out infinite;margin:0 auto 1rem}@keyframes spin{to{transform:rotate(360deg)}}
+    </style>
 </head>
-<body>
-    <!-- Loading Screen -->
-    <div id="loading-screen" class="loading-screen">
+<body>    <!-- Enhanced Loading Screen -->
+    <div id="loading-screen" class="loading-screen" aria-live="polite" aria-label="Đang tải ứng dụng">
         <div class="loading-content">
             <div class="loading-logo">
-                <i class="fas fa-coffee"></i>
+                <i class="fas fa-coffee" aria-hidden="true"></i>
                 <h2>BalanCoffee</h2>
             </div>
-            <div class="loading-spinner"></div>
-            <p>Đang khởi tạo hệ thống...</p>
+            <div class="loading-spinner" aria-hidden="true"></div>
+            <p class="loading-text">Đang khởi tạo hệ thống...</p>
+            <div class="loading-progress">
+                <div class="progress-bar" id="loading-progress-bar"></div>
+            </div>
         </div>
     </div>
 
-    <div class="app-container" id="app-container" style="display: none;">
-        <!-- Header -->
+    <!-- Main App Container -->
+    <div class="app-container" id="app-container">
+        <!-- Enhanced Header -->
         <header class="header" role="banner">
-            <div class="logo">
-                <i class="fas fa-coffee" aria-hidden="true"></i>
-                <h1>BalanCoffee</h1>
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-coffee" aria-hidden="true"></i>
+                    <div class="logo-text">
+                        <h1>BalanCoffee</h1>
+                        <span class="tagline">POS System</span>
+                    </div>
+                </div>
+                
+                <!-- Header Controls -->
+                <div class="header-controls">
+                    <!-- Quick Stats -->
+                    <div class="quick-stats" id="quick-stats">
+                        <div class="stat-item">
+                            <i class="fas fa-clock" aria-hidden="true"></i>
+                            <span id="current-time">--:--</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-receipt" aria-hidden="true"></i>
+                            <span id="today-orders">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-coins" aria-hidden="true"></i>
+                            <span id="today-revenue">0₫</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <nav class="header-actions" role="navigation" aria-label="Điều hướng chính">
+                        <button class="btn btn-secondary header-btn" onclick="toggleAdminMode()" 
+                                aria-label="Chuyển đổi chế độ quản lý" title="Quản lý ca làm việc">
+                            <i class="fas fa-chart-bar" aria-hidden="true"></i>
+                            <span class="btn-text">Quản lý</span>
+                        </button>
+                        <button class="btn btn-primary header-btn cart-toggle" onclick="toggleSidebar()" 
+                                aria-label="Hiển thị danh sách hóa đơn" title="Xem hóa đơn chờ thanh toán">
+                            <i class="fas fa-receipt" aria-hidden="true"></i>
+                            <span class="btn-text">Hóa đơn</span>
+                            <span class="badge" id="invoice-count" aria-label="Số lượng hóa đơn chờ">0</span>
+                        </button>
+                    </nav>
+                </div>
             </div>
-            <nav class="header-actions" role="navigation" aria-label="Điều hướng chính">
-                <button class="btn btn-secondary" onclick="toggleAdminMode()" aria-label="Chuyển đổi chế độ quản lý" title="Quản lý ca làm việc">
-                    <i class="fas fa-chart-bar" aria-hidden="true"></i>
-                    <span class="btn-text">Quản lý</span>
-                </button>
-                <button class="cart-toggle" onclick="toggleSidebar()" aria-label="Hiển thị danh sách hóa đơn" title="Xem hóa đơn chờ thanh toán">
-                    <i class="fas fa-receipt" aria-hidden="true"></i>
-                    <span class="btn-text">Hóa đơn</span>
-                    <span class="badge" id="invoice-count" aria-label="Số lượng hóa đơn chờ">0</span>
-                </button>
-            </nav>
-        </header>        <!-- Main Content -->
+        </header>        <!-- Enhanced Main Content -->
         <main class="main-content" role="main">
             <!-- Menu Section -->
-            <section class="menu-section" aria-label="Danh sách đồ uống">                <div class="section-header">
+            <section class="menu-section" aria-label="Danh sách đồ uống">
+                <div class="section-header">
                     <h2>Menu Đồ Uống</h2>
-                </div>                <div class="menu-categories" role="tablist" aria-label="Danh mục đồ uống">
-                    <button class="category-btn active" data-category="all" role="tab" aria-selected="true" aria-controls="menu-grid">
+                    <div class="section-actions">
+                        <button class="btn btn-outline search-btn" onclick="toggleSearch()" 
+                                aria-label="Tìm kiếm sản phẩm">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <div class="search-container" id="search-container" style="display: none;">
+                            <input type="text" class="search-input" id="menu-search" 
+                                   placeholder="Tìm kiếm món..."
+                                   onkeyup="filterMenuBySearch(this.value)">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Menu Categories -->
+                <div class="menu-categories" role="tablist" aria-label="Danh mục đồ uống">
+                    <button class="category-btn active" data-category="all" role="tab" 
+                            aria-selected="true" aria-controls="menu-grid">
                         <i class="fas fa-th-large" aria-hidden="true"></i>
                         <span>Tất cả</span>
+                        <span class="category-count" id="count-all">0</span>
                     </button>
-                    <button class="category-btn" data-category="cafe-viet" role="tab" aria-selected="false" aria-controls="menu-grid">
+                    <button class="category-btn" data-category="cafe-viet" role="tab" 
+                            aria-selected="false" aria-controls="menu-grid">
                         <i class="fas fa-coffee" aria-hidden="true"></i>
                         <span>Cà phê Việt</span>
+                        <span class="category-count" id="count-cafe-viet">0</span>
                     </button>
-                    <button class="category-btn" data-category="cafe-y" role="tab" aria-selected="false" aria-controls="menu-grid">
+                    <button class="category-btn" data-category="cafe-y" role="tab" 
+                            aria-selected="false" aria-controls="menu-grid">
                         <i class="fas fa-mug-hot" aria-hidden="true"></i>
                         <span>Espresso</span>
+                        <span class="category-count" id="count-cafe-y">0</span>
                     </button>
-                    <button class="category-btn" data-category="tra-trai-cay" role="tab" aria-selected="false" aria-controls="menu-grid">
+                    <button class="category-btn" data-category="tra-trai-cay" role="tab" 
+                            aria-selected="false" aria-controls="menu-grid">
                         <i class="fas fa-leaf" aria-hidden="true"></i>
                         <span>Trà & Nước ép</span>
+                        <span class="category-count" id="count-tra-trai-cay">0</span>
                     </button>
-                    <button class="category-btn" data-category="khac" role="tab" aria-selected="false" aria-controls="menu-grid">
+                    <button class="category-btn" data-category="khac" role="tab" 
+                            aria-selected="false" aria-controls="menu-grid">
                         <i class="fas fa-cookie-bite" aria-hidden="true"></i>
                         <span>Khác</span>
+                        <span class="category-count" id="count-khac">0</span>
                     </button>
                 </div>
+                
+                <!-- Enhanced Menu Grid -->
                 <div class="menu-grid" id="menu-grid" role="tabpanel" aria-live="polite">
                     <!-- Menu items will be populated by JavaScript -->
                     <div class="menu-loading">
-                        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                        <div class="loading-spinner-small"></div>
                         <p>Đang tải menu...</p>
                     </div>
                 </div>
-            </section><!-- Admin Section -->
+            </section>            <!-- Enhanced Admin Section -->
             <section class="admin-section" id="admin-section" style="display: none;">
-                <h2>Quản Lý Ca Làm Việc</h2>                <!-- Current Shift Info -->
+                <div class="admin-header">
+                    <h2>
+                        <i class="fas fa-chart-line"></i>
+                        Quản Lý Ca Làm Việc
+                    </h2>
+                    <div class="admin-actions">
+                        <button class="btn btn-outline" onclick="exportData()">
+                            <i class="fas fa-download"></i>
+                            Xuất dữ liệu
+                        </button>
+                        <button class="btn btn-danger" onclick="clearAllInvoices()">
+                            <i class="fas fa-trash"></i>
+                            Xóa tất cả
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Current Shift Info -->
                 <div class="current-shift-info">
-                    <div class="shift-status">
-                        <h3>Ca Làm Việc Hiện Tại</h3>
-                        <div class="shift-details">
-                            <div class="shift-time">
+                    <div class="shift-card">
+                        <div class="shift-header">
+                            <h3>
                                 <i class="fas fa-clock"></i>
-                                <span>Bắt đầu: <span id="shift-start-display">--</span></span>
+                                Ca Làm Việc Hiện Tại
+                            </h3>
+                            <div class="shift-status" id="shift-status">
+                                <span class="status-indicator"></span>
+                                <span class="status-text">Chưa bắt đầu</span>
                             </div>
-                            <div class="shift-employee">
+                        </div>
+                        <div class="shift-details">
+                            <div class="detail-item">
+                                <i class="fas fa-play-circle"></i>
+                                <span>Bắt đầu: <strong id="shift-start-display">--</strong></span>
+                            </div>
+                            <div class="detail-item">
                                 <i class="fas fa-user"></i>
-                                <span>Nhân viên: <span id="shift-employee-display">--</span></span>
+                                <span>Nhân viên: <strong id="shift-employee-display">--</strong></span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-stopwatch"></i>
+                                <span>Thời gian: <strong id="shift-duration">--</strong></span>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Enhanced Admin Controls -->
                 <div class="admin-controls">
-                    <div class="shift-controls">
-                        <button class="btn btn-success" onclick="startNewShift()">Bắt đầu ca mới</button>
-                        <button class="btn btn-primary" onclick="viewCurrentShift()">Xem ca hiện tại</button>
-                        <button class="btn btn-danger" onclick="endShift()">Kết thúc ca</button>
-                    </div>
-                </div><div class="summary-cards">
-                    <div class="summary-card">
-                        <h3>Đơn hàng trong ca</h3>
-                        <p id="current-shift-orders">0</p>
-                    </div>
-                    <div class="summary-card">
-                        <h3>Doanh thu trong ca</h3>
-                        <p id="current-shift-revenue">0₫</p>
-                    </div>
-                    <div class="summary-card">
-                        <h3>Món bán chạy</h3>
-                        <p id="current-shift-bestseller">-</p>
+                    <div class="control-group">
+                        <h4>Điều khiển ca làm việc</h4>
+                        <div class="shift-controls">
+                            <button class="btn btn-success" onclick="startNewShift()">
+                                <i class="fas fa-play"></i>
+                                Bắt đầu ca mới
+                            </button>
+                            <button class="btn btn-primary" onclick="viewCurrentShift()">
+                                <i class="fas fa-eye"></i>
+                                Xem ca hiện tại
+                            </button>
+                            <button class="btn btn-warning" onclick="pauseShift()">
+                                <i class="fas fa-pause"></i>
+                                Tạm dừng
+                            </button>
+                            <button class="btn btn-danger" onclick="endShift()">
+                                <i class="fas fa-stop"></i>
+                                Kết thúc ca
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Enhanced Summary Cards -->
+                <div class="summary-cards">
+                    <div class="summary-card orders">
+                        <div class="card-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Đơn hàng trong ca</h3>
+                            <p class="card-value" id="current-shift-orders">0</p>
+                            <span class="card-subtitle">đơn hàng</span>
+                        </div>
+                    </div>
+                    <div class="summary-card revenue">
+                        <div class="card-icon">
+                            <i class="fas fa-coins"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Doanh thu trong ca</h3>
+                            <p class="card-value" id="current-shift-revenue">0₫</p>
+                            <span class="card-subtitle">VND</span>
+                        </div>
+                    </div>
+                    <div class="summary-card bestseller">
+                        <div class="card-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Món bán chạy</h3>
+                            <p class="card-value" id="current-shift-bestseller">-</p>
+                            <span class="card-subtitle">trong ca này</span>
+                        </div>
+                    </div>
+                    <div class="summary-card average">
+                        <div class="card-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="card-content">
+                            <h3>Trung bình/đơn</h3>
+                            <p class="card-value" id="average-order-value">0₫</p>
+                            <span class="card-subtitle">VND</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Shift History -->
                 <div class="current-shift-history">
-                    <h3>Đơn hàng trong ca hiện tại</h3>
-                    <div id="current-shift-list">
-                        <!-- Current shift orders will be populated here -->
+                    <div class="history-header">
+                        <h3>
+                            <i class="fas fa-history"></i>
+                            Đơn hàng trong ca hiện tại
+                        </h3>
+                        <div class="history-filters">
+                            <button class="filter-btn active" data-filter="all">Tất cả</button>
+                            <button class="filter-btn" data-filter="recent">Gần đây</button>
+                            <button class="filter-btn" data-filter="completed">Hoàn thành</button>
+                        </div>
+                    </div>
+                    <div class="shift-orders-container">
+                        <div id="current-shift-list" class="shift-orders-list">
+                            <!-- Current shift orders will be populated here -->
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>Chưa có đơn hàng nào trong ca này</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
-        </main>        <!-- Sidebar -->
+        </main><!-- Sidebar -->
         <aside class="sidebar collapsed" id="sidebar" aria-label="Quản lý hóa đơn">
             <!-- Mobile Backdrop -->
             <div class="sidebar-backdrop" onclick="toggleSidebar()" onkeydown="handleBackdropKeydown(event)" aria-hidden="true" tabindex="-1"></div>
