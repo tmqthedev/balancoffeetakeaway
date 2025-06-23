@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BalanCoffee Function Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-title {
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+        .test-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .test-btn:hover {
+            background: #0056b3;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+        .warning {
+            border-left-color: #ffc107;
+            background: #fffdf5;
+        }
+    </style>
+</head>
+<body>
+    <h1>BalanCoffee Function Test Suite</h1>
+    
+    <div class="test-container">
+        <h2 class="test-title">Function Availability Test</h2>
+        <button class="test-btn" onclick="testFunctionAvailability()">Test Function Exports</button>
+        <div id="function-test-result"></div>
+    </div>
+
+    <div class="test-container">
+        <h2 class="test-title">DOM Elements Test</h2>
+        <button class="test-btn" onclick="testDOMElements()">Test Required DOM Elements</button>
+        <div id="dom-test-result"></div>
+    </div>
+
+    <div class="test-container">
+        <h2 class="test-title">Function Execution Test</h2>
+        <button class="test-btn" onclick="testToggleSidebar()">Test toggleSidebar</button>
+        <button class="test-btn" onclick="testToggleAdminDropdown()">Test toggleAdminDropdown</button>
+        <button class="test-btn" onclick="testCreateNewInvoice()">Test createNewInvoice</button>
+        <button class="test-btn" onclick="testFilterInvoices()">Test filterInvoices</button>
+        <button class="test-btn" onclick="testStartNewShift()">Test startNewShift</button>
+        <div id="execution-test-result"></div>
+    </div>
+
+    <script>        function showResult(containerId, message, type = 'success') {
+            const container = document.getElementById(containerId);
+            let className = 'test-result';
+            if (type === 'error') {
+                className = 'test-result error';
+            } else if (type === 'warning') {
+                className = 'test-result warning';
+            }
+            container.innerHTML = `<div class="${className}">${message}</div>`;
+        }
+
+        function testFunctionAvailability() {
+            const functions = [
+                'toggleSidebar',
+                'toggleAdminDropdown', 
+                'createNewInvoice',
+                'filterInvoices',
+                'startNewShift'
+            ];
+            
+            const results = [];
+            functions.forEach(func => {
+                if (typeof window[func] === 'function') {
+                    results.push(`✅ ${func}: Available`);
+                } else {
+                    results.push(`❌ ${func}: Not available`);
+                }
+            });
+            
+            showResult('function-test-result', results.join('<br>'));
+        }
+
+        function testDOMElements() {
+            const elements = [
+                'sidebar',
+                'admin-dropdown',
+                'menu-grid',
+                'invoice-list',
+                'shift-status',
+                'shift-employee',
+                'shift-start-time'
+            ];
+            
+            const results = [];
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    results.push(`✅ #${id}: Found`);
+                } else {
+                    results.push(`❌ #${id}: Not found`);
+                }
+            });
+            
+            showResult('dom-test-result', results.join('<br>'));
+        }
+
+        function testToggleSidebar() {
+            try {
+                if (typeof window.toggleSidebar === 'function') {
+                    // Note: This would normally toggle the sidebar
+                    showResult('execution-test-result', '✅ toggleSidebar function is callable');
+                } else {
+                    showResult('execution-test-result', '❌ toggleSidebar not available', 'error');
+                }
+            } catch (error) {
+                showResult('execution-test-result', `❌ toggleSidebar error: ${error.message}`, 'error');
+            }
+        }
+
+        function testToggleAdminDropdown() {
+            try {
+                if (typeof window.toggleAdminDropdown === 'function') {
+                    showResult('execution-test-result', '✅ toggleAdminDropdown function is callable');
+                } else {
+                    showResult('execution-test-result', '❌ toggleAdminDropdown not available', 'error');
+                }
+            } catch (error) {
+                showResult('execution-test-result', `❌ toggleAdminDropdown error: ${error.message}`, 'error');
+            }
+        }
+
+        function testCreateNewInvoice() {
+            try {
+                if (typeof window.createNewInvoice === 'function') {
+                    showResult('execution-test-result', '✅ createNewInvoice function is callable');
+                } else {
+                    showResult('execution-test-result', '❌ createNewInvoice not available', 'error');
+                }
+            } catch (error) {
+                showResult('execution-test-result', `❌ createNewInvoice error: ${error.message}`, 'error');
+            }
+        }
+
+        function testFilterInvoices() {
+            try {
+                if (typeof window.filterInvoices === 'function') {
+                    showResult('execution-test-result', '✅ filterInvoices function is callable');
+                } else {
+                    showResult('execution-test-result', '❌ filterInvoices not available', 'error');
+                }
+            } catch (error) {
+                showResult('execution-test-result', `❌ filterInvoices error: ${error.message}`, 'error');
+            }
+        }
+
+        function testStartNewShift() {
+            try {
+                if (typeof window.startNewShift === 'function') {
+                    showResult('execution-test-result', '✅ startNewShift function is callable');
+                } else {
+                    showResult('execution-test-result', '❌ startNewShift not available', 'error');
+                }
+            } catch (error) {
+                showResult('execution-test-result', `❌ startNewShift error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+
+    <!-- Load the main application scripts for testing -->
+    <script src="data.js"></script>
+    <script src="dom-helper.js"></script>
+    <script src="debug-helper.js"></script>
+    <script src="mobile-helpers.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

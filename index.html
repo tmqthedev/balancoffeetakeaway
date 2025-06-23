@@ -3,7 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>BalanCoffee - Hệ Thống POS Hiện Đại</title>
+    <title>Bala                <!-- Invoice Filters -->
+                <div class="invoice-filters">
+                    <button class="filter-btn active" data-filter="pending" onclick="filterInvoices('status', 'pending')">
+                        <i class="fas fa-clock" aria-hidden="true"></i>
+                        <span>Chờ thanh toán</span>
+                        <span class="filter-count" id="pending-count">0</span>
+                    </button>
+                    <button class="filter-btn" data-filter="paid" onclick="filterInvoices('status', 'paid')">
+                        <i class="fas fa-check-circle" aria-hidden="true"></i>
+                        <span>Đã thanh toán</span>
+                        <span class="filter-count" id="paid-count">0</span>
+                    </button>
+                    <button class="filter-btn" data-filter="all" onclick="filterInvoices('status', 'all')">
+                        <i class="fas fa-list" aria-hidden="true"></i>
+                        <span>Tất cả</span>
+                        <span class="filter-count" id="all-count">0</span>
+                    </button>
+                </div>Thống POS Hiện Đại</title>
     <meta name="description" content="Hệ thống POS quản lý đơn hàng và thanh toán cho quán cà phê BalanCoffee - Giao diện hiện đại, responsive và thân thiện người dùng">
     <meta name="theme-color" content="#6F4E37">
     <meta name="author" content="BalanCoffee Team">
@@ -67,8 +84,7 @@
                 </div>
                 
                 <!-- Header Controls -->
-                <div class="header-controls">
-                    <!-- Quick Stats -->
+                <div class="header-controls">                    <!-- Quick Stats -->
                     <div class="quick-stats" id="quick-stats">
                         <div class="stat-item">
                             <i class="fas fa-clock" aria-hidden="true"></i>
@@ -83,17 +99,42 @@
                             <span id="today-revenue">0₫</span>
                         </div>
                     </div>
-                      <!-- Action Buttons -->
+                    
+                    <!-- Shift Display -->
+                    <div class="shift-display" id="shift-display">
+                        <div class="shift-info">
+                            <span class="shift-label">Ca làm việc:</span>
+                            <span class="shift-status inactive" id="shift-status">Chưa bắt đầu</span>
+                        </div>
+                        <div class="shift-details" id="shift-details" style="display: none;">
+                            <div class="shift-detail-item">
+                                <span class="label">Nhân viên:</span>
+                                <span id="shift-employee">Chưa có nhân viên</span>
+                            </div>
+                            <div class="shift-detail-item">
+                                <span class="label">Bắt đầu:</span>
+                                <span id="shift-start-time">-</span>
+                            </div>
+                            <div class="shift-detail-item">
+                                <span class="label">Thời gian:</span>
+                                <span id="shift-duration">-</span>
+                            </div>
+                            <div class="shift-detail-item">
+                                <span class="label">Ghi chú:</span>
+                                <span id="shift-note">-</span>
+                            </div>
+                        </div>
+                    </div><!-- Action Buttons -->
                     <nav class="header-actions" role="navigation" aria-label="Điều hướng chính">
                         <!-- Admin Dropdown -->
                         <div class="admin-dropdown" id="admin-dropdown">
-                            <button class="btn btn-secondary header-btn admin-dropdown-toggle" onclick="toggleAdminDropdown()" 
-                                    aria-label="Menu quản lý" title="Quản lý ca làm việc và hệ thống">
+                            <button class="btn btn-secondary header-btn admin-dropdown-btn admin-dropdown-toggle" onclick="toggleAdminDropdown()" 
+                                    aria-label="Menu quản lý" title="Quản lý ca làm việc và hệ thống" aria-expanded="false">
                                 <i class="fas fa-cog" aria-hidden="true"></i>
                                 <span class="btn-text">Quản lý</span>
                                 <i class="fas fa-chevron-down dropdown-arrow" aria-hidden="true"></i>
                             </button>
-                            <div class="admin-dropdown-menu" id="admin-dropdown-menu">
+                            <div class="admin-dropdown-menu dropdown" id="admin-dropdown-menu" aria-hidden="true">
                                 <div class="dropdown-section">
                                     <h4>Ca làm việc</h4>
                                     <button class="dropdown-item" onclick="startNewShift(); closeAdminDropdown()">
@@ -128,8 +169,8 @@
                             </div>
                         </div>
                         
-                        <button class="btn btn-primary header-btn cart-toggle" onclick="toggleSidebar()" 
-                                aria-label="Hiển thị danh sách hóa đơn" title="Xem hóa đơn chờ thanh toán">
+                        <button class="btn btn-primary header-btn sidebar-toggle cart-toggle" onclick="toggleSidebar()" 
+                                aria-label="Hiển thị danh sách hóa đơn" title="Xem hóa đơn chờ thanh toán" aria-expanded="false">
                             <i class="fas fa-receipt" aria-hidden="true"></i>
                             <span class="btn-text">Hóa đơn</span>
                             <span class="badge" id="invoice-count" aria-label="Số lượng hóa đơn chờ">0</span>
@@ -144,35 +185,34 @@
                 <div class="section-header">
                     <h2>Menu Đồ Uống</h2>
                 </div>
-                
-                <!-- Enhanced Menu Categories -->
+                  <!-- Enhanced Menu Categories -->
                 <div class="menu-categories" role="tablist" aria-label="Danh mục đồ uống">
                     <button class="category-btn active" data-category="all" role="tab" 
-                            aria-selected="true" aria-controls="menu-grid">
+                            aria-selected="true" aria-controls="menu-grid" onclick="handleCategoryClick(event)">
                         <i class="fas fa-th-large" aria-hidden="true"></i>
                         <span>Tất cả</span>
                         <span class="category-count" id="count-all">0</span>
                     </button>
                     <button class="category-btn" data-category="cafe-viet" role="tab" 
-                            aria-selected="false" aria-controls="menu-grid">
+                            aria-selected="false" aria-controls="menu-grid" onclick="handleCategoryClick(event)">
                         <i class="fas fa-coffee" aria-hidden="true"></i>
                         <span>Cà phê Việt</span>
                         <span class="category-count" id="count-cafe-viet">0</span>
                     </button>
                     <button class="category-btn" data-category="cafe-y" role="tab" 
-                            aria-selected="false" aria-controls="menu-grid">
+                            aria-selected="false" aria-controls="menu-grid" onclick="handleCategoryClick(event)">
                         <i class="fas fa-mug-hot" aria-hidden="true"></i>
                         <span>Espresso</span>
                         <span class="category-count" id="count-cafe-y">0</span>
                     </button>
                     <button class="category-btn" data-category="tra-trai-cay" role="tab" 
-                            aria-selected="false" aria-controls="menu-grid">
+                            aria-selected="false" aria-controls="menu-grid" onclick="handleCategoryClick(event)">
                         <i class="fas fa-leaf" aria-hidden="true"></i>
                         <span>Trà & Nước ép</span>
                         <span class="category-count" id="count-tra-trai-cay">0</span>
                     </button>
                     <button class="category-btn" data-category="khac" role="tab" 
-                            aria-selected="false" aria-controls="menu-grid">
+                            aria-selected="false" aria-controls="menu-grid" onclick="handleCategoryClick(event)">
                         <i class="fas fa-cookie-bite" aria-hidden="true"></i>
                         <span>Khác</span>
                         <span class="category-count" id="count-khac">0</span>
@@ -187,10 +227,10 @@
                         <p>Đang tải menu...</p>
                     </div>
                 </div>            </section>
-        </main><!-- Sidebar -->
-        <aside class="sidebar collapsed" id="sidebar" aria-label="Quản lý hóa đơn">
+        </main>        <!-- Sidebar -->
+        <aside class="sidebar collapsed" id="sidebar" aria-label="Quản lý hóa đơn" aria-hidden="true">
             <!-- Mobile Backdrop -->
-            <div class="sidebar-backdrop" onclick="toggleSidebar()" onkeydown="handleBackdropKeydown(event)" aria-hidden="true" tabindex="-1"></div>
+            <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()" onkeydown="handleBackdropKeydown(event)" aria-hidden="true" tabindex="-1"></div>
             
             <div class="sidebar-content">
                 <div class="sidebar-header">
@@ -424,9 +464,8 @@
     <div class="connection-status online" style="display: none;">
         <span class="connection-indicator"></span>
         Đã kết nối
-    </div>
-
-    <!-- Scripts -->
+    </div>    <!-- Scripts -->
+    <script src="debug-helper.js"></script>
     <script src="data.js"></script>
     <script src="mobile-helpers.js"></script>
     <script src="script.js"></script>

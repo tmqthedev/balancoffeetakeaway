@@ -309,35 +309,72 @@ const initPullToRefresh = (container, refreshCallback) => {
 
 // Initialize all mobile features
 const initMobileHelpers = () => {
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initMobileHelpers);
-        return;
-    }
+    // Don't initialize if already done or if main app is not ready
+    if (window.mobileHelpersInitialized) return;
     
-    preventZoomOnFocus();
-    handleSidebarSwipe();
-    handleOrientationChange();
-    monitorNetworkStatus();
+    console.log('🔧 Initializing mobile helpers...');
     
-    // Listen for orientation changes
-    window.addEventListener('orientationchange', () => {
-        setTimeout(handleOrientationChange, 100);
-    });
-    
-    window.addEventListener('resize', handleOrientationChange);
-    
-    // Initialize pull to refresh for invoice list
-    const invoiceContainer = document.querySelector('.invoice-list-container');
-    if (invoiceContainer) {
-        initPullToRefresh(invoiceContainer, async () => {
-            // Refresh invoice list
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-            location.reload(); // Simple refresh for now
+    try {
+        preventZoomOnFocus();
+        handleSidebarSwipe();
+        handleOrientationChange();
+        monitorNetworkStatus();
+        
+        // Listen for orientation changes
+        window.addEventListener('orientationchange', () => {
+            setTimeout(handleOrientationChange, 100);
         });
+        
+        window.addEventListener('resize', handleOrientationChange);        // Initialize pull to refresh for invoice list when it's available
+        const initInvoicePullRefresh = () => {
+            const invoiceContainer = document.querySelector('.invoice-list-container');
+            if (invoiceContainer) {
+                initPullToRefresh(invoiceContainer, async () => {
+                    // Refresh invoice list
+                    if (window.loadInvoices && typeof window.loadInvoices === 'function') {                        try {
+                            const result = window.loadInvoices();
+                            if (result && typeof result.then === 'function') {
+                                await Promise.resolve(result);
+                            } else if (result) {
+                                // If it's not a promise, just continue
+                                console.log('Invoice refresh completed');
+                            }
+                        }catch (error) {
+                            console.error('Error refreshing invoices:', error);
+                        }
+                    } else {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        location.reload();
+                    }
+                });
+            }
+        };
+        
+        // Wait for main app to be ready before initializing pull refresh
+        if (window.initializationState?.isInitialized) {
+            initInvoicePullRefresh();
+        } else {
+            // Wait for app initialization
+            const checkAppReady = setInterval(() => {
+                if (window.initializationState?.isInitialized) {
+                    clearInterval(checkAppReady);
+                    initInvoicePullRefresh();
+                }
+            }, 500);
+            
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                clearInterval(checkAppReady);
+                initInvoicePullRefresh();
+            }, 10000);
+        }
+        
+        window.mobileHelpersInitialized = true;
+        console.log('✅ Mobile helpers initialized successfully');
+        
+    } catch (error) {
+        console.error('❌ Error initializing mobile helpers:', error);
     }
-    
-    console.log('🔧 Mobile helpers initialized');
 };
 
 // Export functions for global use
@@ -351,5 +388,18 @@ window.mobileHelpers = {
     initPullToRefresh
 };
 
-// Auto-initialize
-initMobileHelpers();
+// Initialize when ready - wait for main app
+const startMobileHelpers = () => {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(initMobileHelpers, 200); // Delay to let main app initialize first
+        });
+    } else {
+        setTimeout(initMobileHelpers, 200);
+    }
+};
+
+// Only start if not already initialized
+if (!window.mobileHelpersInitialized) {
+    startMobileHelpers();
+}
