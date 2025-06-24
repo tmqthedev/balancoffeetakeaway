@@ -2,25 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Bala                <!-- Invoice Filters -->
-                <div class="invoice-filters">
-                    <button class="filter-btn active" data-filter="pending" onclick="filterInvoices('status', 'pending')">
-                        <i class="fas fa-clock" aria-hidden="true"></i>
-                        <span>Chờ thanh toán</span>
-                        <span class="filter-count" id="pending-count">0</span>
-                    </button>
-                    <button class="filter-btn" data-filter="paid" onclick="filterInvoices('status', 'paid')">
-                        <i class="fas fa-check-circle" aria-hidden="true"></i>
-                        <span>Đã thanh toán</span>
-                        <span class="filter-count" id="paid-count">0</span>
-                    </button>
-                    <button class="filter-btn" data-filter="all" onclick="filterInvoices('status', 'all')">
-                        <i class="fas fa-list" aria-hidden="true"></i>
-                        <span>Tất cả</span>
-                        <span class="filter-count" id="all-count">0</span>
-                    </button>
-                </div>Thống POS Hiện Đại</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">    <title>BalanCoffee - Hệ Thống POS Hiện Đại</title>
     <meta name="description" content="Hệ thống POS quản lý đơn hàng và thanh toán cho quán cà phê BalanCoffee - Giao diện hiện đại, responsive và thân thiện người dùng">
     <meta name="theme-color" content="#6F4E37">
     <meta name="author" content="BalanCoffee Team">
@@ -301,8 +283,7 @@
                 </div>                <div class="modal-body">
                     <div class="menu-instruction">
                         <p><i class="fas fa-info-circle"></i> Chọn món từ menu bên dưới để thêm vào hóa đơn</p>
-                    </div>
-                    <div class="current-order">
+                    </div>                    <div class="current-order" id="current-order">
                         <h4>Thức uống đã chọn</h4>
                         <div class="order-items" id="order-items">
                             <!-- Order items will be populated here -->
@@ -465,10 +446,21 @@
     <div class="connection-status online" style="display: none;">
         <span class="connection-indicator"></span>
         Đã kết nối
-    </div>    <!-- Scripts - Load in dependency order -->
-    <!-- Core modules first -->
+    </div>    <!-- Scripts - Load in correct dependency order -->
+    <!-- Safe startup first -->
+    <script src="safe-startup.js"></script>
+    
+    <!-- Debug and DOM helpers -->
+    <script src="debug-helper.js"></script>
+    <script src="dom-helper.js"></script>
+    
+    <!-- Core modules -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
+    
+    <!-- Data and mobile helpers -->
+    <script src="data.js"></script>
+    <script src="mobile-helpers.js"></script>
     
     <!-- Feature modules -->
     <script src="js/ui-manager.js"></script>
@@ -476,11 +468,6 @@
     <script src="js/order-manager.js"></script>
     <script src="js/shift-manager.js"></script>
     <script src="js/modal-manager.js"></script>
-      <!-- Legacy helpers -->
-    <script src="debug-helper.js"></script>
-    <script src="dom-helper.js"></script>
-    <script src="data.js"></script>
-    <script src="mobile-helpers.js"></script>
     
     <!-- App initialization - load last -->
     <script src="js/app-initializer.js"></script>

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BalanCoffee DOM Inspector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .inspector-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .element-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+        }
+        .element-item.missing {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .element-details {
+            font-family: monospace;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .log-output {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-danger { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <h1>🔍 BalanCoffee DOM Inspector</h1>
+    <p>Công cụ chẩn đoán DOM elements cho hệ thống BalanCoffee POS</p>
+
+    <div class="inspector-section">
+        <h2>🎛️ Controls</h2>
+        <button class="btn btn-primary" onclick="inspectCurrentPage()">🔍 Inspect Current Page</button>
+        <button class="btn btn-success" onclick="inspectMainApp()">🚀 Inspect Main App</button>
+        <button class="btn btn-warning" onclick="runFullDiagnostics()">📊 Full Diagnostics</button>
+        <button class="btn btn-danger" onclick="clearResults()">🗑️ Clear Results</button>
+    </div>
+
+    <div class="inspector-section">
+        <h2>📋 Critical Elements Status</h2>
+        <div id="elements-status"></div>
+    </div>
+
+    <div class="inspector-section">
+        <h2>🔍 All Elements Found</h2>
+        <div id="all-elements"></div>
+    </div>
+
+    <div class="inspector-section">
+        <h2>📝 Inspection Log</h2>
+        <div class="log-output" id="inspection-log"></div>
+    </div>
+
+    <script>
+        const criticalElements = [
+            { id: 'sidebar', description: 'Main navigation sidebar' },
+            { id: 'menu-grid', description: 'Menu items display grid' },
+            { id: 'invoice-list', description: 'Invoice management list' },
+            { id: 'loading-screen', description: 'Application loading overlay' },
+            { id: 'admin-dropdown', description: 'Admin options dropdown' },
+            { id: 'current-order', description: 'Current order display' },
+            { id: 'order-total', description: 'Order total amount' }
+        ];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logArea = document.getElementById('inspection-log');
+            
+            const color = {
+                'error': '#ff4444',
+                'warn': '#ffaa00',
+                'success': '#44ff44',
+                'info': '#4444ff'
+            }[type] || '#00ff00';
+            
+            logArea.innerHTML += `<span style="color: ${color}">[${timestamp}] ${message}</span>\n`;
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        function getElementInfo(element) {
+            if (!element) return null;
+            
+            return {
+                tagName: element.tagName,
+                id: element.id,
+                className: element.className,
+                visible: element.offsetWidth > 0 && element.offsetHeight > 0,
+                rect: element.getBoundingClientRect(),
+                innerHTML: element.innerHTML.substring(0, 100) + (element.innerHTML.length > 100 ? '...' : ''),
+                parentId: element.parentElement ? element.parentElement.id : null,
+                childCount: element.children.length
+            };
+        }
+
+        function inspectCurrentPage() {
+            log('🔍 Inspecting current page DOM elements...', 'info');
+            
+            const elementsStatus = document.getElementById('elements-status');
+            const allElements = document.getElementById('all-elements');
+            
+            elementsStatus.innerHTML = '';
+            allElements.innerHTML = '';
+
+            // Check critical elements
+            criticalElements.forEach(({ id, description }) => {
+                const element = document.getElementById(id);
+                const exists = !!element;
+                
+                const statusDiv = document.createElement('div');
+                statusDiv.className = 'element-item' + (exists ? '' : ' missing');
+                
+                let details = '';
+                if (exists) {
+                    const info = getElementInfo(element);
+                    details = `Tag: ${info.tagName}, Classes: "${info.className}", Visible: ${info.visible}, Children: ${info.childCount}`;
+                } else {
+                    // Look for similar elements
+                    const similar = document.querySelectorAll(`[id*="${id}"], [class*="${id}"]`);
+                    details = similar.length > 0 ? 
+                        `Similar found: ${Array.from(similar).map(el => el.id || el.className).join(', ')}` : 
+                        'No similar elements found';
+                }
+                
+                statusDiv.innerHTML = `
+                    <div>
+                        <strong>#${id}</strong> - ${description}
+                        <div class="element-details">${details}</div>
+                    </div>
+                    <span style="color: ${exists ? '#28a745' : '#dc3545'}; font-weight: bold;">
+                        ${exists ? 'FOUND' : 'MISSING'}
+                    </span>
+                `;
+                
+                elementsStatus.appendChild(statusDiv);
+                
+                log(`#${id}: ${exists ? 'FOUND' : 'MISSING'} - ${details}`, exists ? 'success' : 'error');
+            });
+
+            // List all elements with IDs
+            const allElementsWithIds = document.querySelectorAll('[id]');
+            log(`📋 Found ${allElementsWithIds.length} elements with IDs`, 'info');
+            
+            let elementsList = '<h3>All Elements with IDs:</h3><ul>';
+            Array.from(allElementsWithIds).forEach(el => {
+                const info = getElementInfo(el);
+                elementsList += `
+                    <li>
+                        <strong>#${el.id}</strong> (${info.tagName})
+                        <div class="element-details">
+                            Classes: "${info.className}"<br>
+                            Visible: ${info.visible}<br>
+                            Children: ${info.childCount}<br>
+                            Parent: ${info.parentId || 'none'}
+                        </div>
+                    </li>
+                `;
+            });
+            elementsList += '</ul>';
+            
+            allElements.innerHTML = elementsList;
+        }
+
+        function inspectMainApp() {
+            log('🚀 Opening main app for inspection...', 'info');
+            
+            // Open main app in iframe for inspection
+            const iframe = document.createElement('iframe');
+            iframe.src = 'index.html';
+            iframe.style.width = '100%';
+            iframe.style.height = '500px';
+            iframe.style.border = '1px solid #ccc';
+            iframe.style.borderRadius = '5px';
+            
+            iframe.onload = function() {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    log('📋 Main app loaded, inspecting elements...', 'info');
+                    
+                    criticalElements.forEach(({ id, description }) => {
+                        const element = iframeDoc.getElementById(id);
+                        const exists = !!element;
+                        
+                        if (exists) {
+                            const info = getElementInfo(element);
+                            log(`Main App #${id}: FOUND - ${info.tagName}, visible: ${info.visible}`, 'success');
+                        } else {
+                            log(`Main App #${id}: MISSING`, 'error');
+                        }
+                    });
+                    
+                    // Count all elements
+                    const totalElements = iframeDoc.querySelectorAll('[id]').length;
+                    log(`Main app has ${totalElements} elements with IDs`, 'info');
+                    
+                } catch (error) {
+                    log(`Error inspecting main app: ${error.message}`, 'error');
+                }
+            };
+            
+            // Add iframe to page
+            const allElements = document.getElementById('all-elements');
+            allElements.innerHTML = '<h3>Main App Preview:</h3>';
+            allElements.appendChild(iframe);
+        }
+
+        function runFullDiagnostics() {
+            log('📊 Running full diagnostics...', 'info');
+            
+            // Check document ready state
+            log(`Document ready state: ${document.readyState}`, 'info');
+            
+            // Check window size
+            log(`Window size: ${window.innerWidth}x${window.innerHeight}`, 'info');
+            
+            // Check for CSS
+            const hasStyles = getComputedStyle(document.body).fontFamily !== '';
+            log(`CSS loaded: ${hasStyles}`, hasStyles ? 'success' : 'error');
+            
+            // Check scripts
+            const scripts = document.querySelectorAll('script[src]');
+            log(`Scripts loaded: ${scripts.length}`, 'info');
+            Array.from(scripts).forEach(script => {
+                log(`  - ${script.src}`, 'info');
+            });
+            
+            // Run main inspection
+            inspectCurrentPage();
+        }
+
+        function clearResults() {
+            document.getElementById('elements-status').innerHTML = '';
+            document.getElementById('all-elements').innerHTML = '';
+            document.getElementById('inspection-log').innerHTML = '';
+        }
+
+        // Auto-run inspection when page loads
+        window.addEventListener('load', () => {
+            log('🔍 DOM Inspector loaded', 'info');
+            setTimeout(inspectCurrentPage, 500);
+        });
+    </script>
+</body>
+</html>

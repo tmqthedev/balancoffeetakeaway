@@ -381,6 +381,9 @@ window.BalanCoffeeUtils = {
     BalanCoffeeState: window.BalanCoffeeState
 };
 
+// Also export as Utils for compatibility with debug helper
+window.Utils = window.BalanCoffeeUtils;
+
 /**
  * BalanCoffee - Utils Module
  * Các hàm tiện ích và helper functions

@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BalanCoffee - Final System Verification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .verification-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #6F4E37 0%, #8B6F47 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .content {
+            padding: 30px;
+        }
+        .test-section {
+            margin: 25px 0;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #ddd;
+        }
+        .test-success {
+            background: #f0f9ff;
+            border-left-color: #10b981;
+        }
+        .test-error {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+        .test-warning {
+            background: #fffbeb;
+            border-left-color: #f59e0b;
+        }
+        .test-info {
+            background: #f8fafc;
+            border-left-color: #3b82f6;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-info { background: #06b6d4; color: white; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #1e293b;
+        }
+        .stat-label {
+            color: #64748b;
+            margin-top: 5px;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-good { background: #10b981; }
+        .status-bad { background: #ef4444; }
+        .status-warning { background: #f59e0b; }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #06b6d4);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <div class="header">
+            <h1>🚀 BalanCoffee System Verification</h1>
+            <p>Kiểm tra tổng thể khả năng recovery và auto-fix của hệ thống</p>
+        </div>
+
+        <div class="content">
+            <!-- System Overview -->
+            <div class="test-section test-info">
+                <h2>📊 Tổng Quan Hệ Thống</h2>
+                <div class="grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-elements">0</div>
+                        <div class="stat-label">DOM Elements</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="missing-elements">0</div>
+                        <div class="stat-label">Elements Thiếu</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="system-health">0%</div>
+                        <div class="stat-label">System Health</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="recovery-ready">❓</div>
+                        <div class="stat-label">Recovery Ready</div>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="health-progress" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Test Results -->
+            <div id="test-results">
+                <div class="test-section test-warning">
+                    <h3>⏳ Đang thực hiện kiểm tra...</h3>
+                    <p>Hệ thống đang chạy các test để xác minh khả năng recovery và auto-fix.</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="text-align: center; margin: 30px 0;">
+                <button class="btn btn-primary" onclick="runFullVerification()">🔄 Chạy Test Đầy Đủ</button>
+                <button class="btn btn-success" onclick="testAutoRecovery()">🔧 Test Auto-Recovery</button>
+                <button class="btn btn-warning" onclick="simulateFailure()">⚠️ Mô Phỏng Lỗi</button>
+                <button class="btn btn-danger" onclick="forceRecovery()">🚨 Force Recovery</button>
+                <button class="btn btn-info" onclick="openMainApp()">🚀 Mở App Chính</button>
+            </div>
+
+            <!-- Detailed Log -->
+            <div class="test-section test-info">
+                <h3>📋 Chi Tiết Log</h3>
+                <pre id="detailed-log">Chờ khởi tạo...</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Core testing system
+        let testResults = [];
+        let systemStats = {
+            totalElements: 7,
+            missingElements: 0,
+            systemHealth: 100,
+            recoveryReady: true
+        };
+
+        const criticalElements = [
+            'sidebar', 'menu-grid', 'invoice-list', 'loading-screen', 
+            'admin-dropdown', 'current-order', 'order-total'
+        ];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('detailed-log');
+            const formattedMessage = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            
+            logElement.textContent += formattedMessage + '\\n';
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(formattedMessage);
+        }
+
+        function updateStats() {
+            const missing = criticalElements.filter(id => !document.getElementById(id));
+            systemStats.missingElements = missing.length;
+            systemStats.systemHealth = ((systemStats.totalElements - systemStats.missingElements) / systemStats.totalElements * 100);
+            systemStats.recoveryReady = window.createMissingDOMElements ? true : false;
+
+            document.getElementById('total-elements').textContent = systemStats.totalElements;
+            document.getElementById('missing-elements').textContent = systemStats.missingElements;
+            document.getElementById('system-health').textContent = systemStats.systemHealth.toFixed(1) + '%';
+            document.getElementById('recovery-ready').textContent = systemStats.recoveryReady ? '✅' : '❌';
+            document.getElementById('health-progress').style.width = systemStats.systemHealth + '%';
+        }
+
+        function displayTestResults() {
+            const container = document.getElementById('test-results');
+            let html = '';
+
+            testResults.forEach(result => {
+                const statusClass = result.status === 'success' ? 'test-success' : 
+                                  result.status === 'error' ? 'test-error' : 'test-warning';
+                const statusIcon = result.status === 'success' ? '✅' : 
+                                 result.status === 'error' ? '❌' : '⚠️';
+
+                html += `
+                    <div class="test-section ${statusClass}">
+                        <h3>${statusIcon} ${result.title}</h3>
+                        <p>${result.description}</p>
+                        ${result.details ? `<pre>${result.details}</pre>` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function checkDOMElements() {
+            log('Kiểm tra DOM elements...');
+            const missing = [];
+            const found = [];
+            
+            criticalElements.forEach(id => {
+                if (document.getElementById(id)) {
+                    found.push(id);
+                    log(`✅ Found: #${id}`, 'success');
+                } else {
+                    missing.push(id);
+                    log(`❌ Missing: #${id}`, 'error');
+                }
+            });
+
+            testResults.push({
+                title: 'DOM Elements Check',
+                status: missing.length === 0 ? 'success' : 'error',
+                description: `Found ${found.length}/${criticalElements.length} critical elements`,
+                details: `Found: ${found.join(', ')}\\nMissing: ${missing.join(', ')}`
+            });
+
+            return { missing, found };
+        }
+
+        function checkRecoverySystem() {
+            log('Kiểm tra hệ thống recovery...');
+            const checks = [];
+            
+            // Check if recovery functions exist
+            if (typeof window.createMissingDOMElements === 'function') {
+                checks.push('✅ createMissingDOMElements available');
+            } else {
+                checks.push('❌ createMissingDOMElements not available');
+            }
+
+            if (typeof window.checkInitializationIssues === 'function') {
+                checks.push('✅ checkInitializationIssues available');
+            } else {
+                checks.push('❌ checkInitializationIssues not available');
+            }
+
+            if (typeof window.attemptAutoFix === 'function') {
+                checks.push('✅ attemptAutoFix available');
+            } else {
+                checks.push('❌ attemptAutoFix not available');
+            }
+
+            const status = checks.every(check => check.includes('✅')) ? 'success' : 'warning';
+            
+            testResults.push({
+                title: 'Recovery System Check',
+                status: status,
+                description: `Checked ${checks.length} recovery functions`,
+                details: checks.join('\\n')
+            });
+
+            log(`Recovery system check: ${status}`, status);
+            return checks;
+        }
+
+        function testAutoRecovery() {
+            log('Bắt đầu test auto-recovery...');
+            
+            // Simulate removing some elements
+            const elementsToRemove = ['sidebar', 'menu-grid'];
+            elementsToRemove.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.remove();
+                    log(`Removed #${id} for testing`);
+                }
+            });
+
+            // Try auto-recovery
+            setTimeout(() => {
+                if (typeof window.createMissingDOMElements === 'function') {
+                    log('Attempting auto-recovery...');
+                    try {
+                        window.createMissingDOMElements();
+                        log('Auto-recovery completed', 'success');
+                        
+                        // Verify recovery
+                        setTimeout(() => {
+                            const verification = checkDOMElements();
+                            if (verification.missing.length === 0) {
+                                log('Auto-recovery verification: SUCCESS', 'success');
+                                testResults.push({
+                                    title: 'Auto-Recovery Test',
+                                    status: 'success',
+                                    description: 'Successfully recovered all missing elements',
+                                    details: 'Removed elements and successfully recovered them automatically'
+                                });
+                            } else {
+                                log('Auto-recovery verification: PARTIAL', 'warning');
+                                testResults.push({
+                                    title: 'Auto-Recovery Test',
+                                    status: 'warning',
+                                    description: 'Partial recovery - some elements still missing',
+                                    details: `Still missing: ${verification.missing.join(', ')}`
+                                });
+                            }
+                            displayTestResults();
+                            updateStats();
+                        }, 500);
+                        
+                    } catch (error) {
+                        log(`Auto-recovery failed: ${error.message}`, 'error');
+                        testResults.push({
+                            title: 'Auto-Recovery Test',
+                            status: 'error',
+                            description: 'Auto-recovery function failed',
+                            details: error.message
+                        });
+                        displayTestResults();
+                    }
+                } else {
+                    log('Auto-recovery function not available', 'error');
+                    testResults.push({
+                        title: 'Auto-Recovery Test',
+                        status: 'error',
+                        description: 'Auto-recovery function not available',
+                        details: 'window.createMissingDOMElements is not defined'
+                    });
+                    displayTestResults();
+                }
+            }, 1000);
+        }
+
+        function simulateFailure() {
+            log('Mô phỏng lỗi hệ thống...');
+            
+            // Remove all critical elements
+            criticalElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.remove();
+                    log(`Removed #${id}`);
+                }
+            });
+
+            testResults.push({
+                title: 'System Failure Simulation',
+                status: 'warning',
+                description: 'Simulated complete system failure by removing all critical elements',
+                details: `Removed elements: ${criticalElements.join(', ')}`
+            });
+
+            updateStats();
+            displayTestResults();
+            log('System failure simulation completed', 'warning');
+        }
+
+        function forceRecovery() {
+            log('Bắt đầu force recovery...');
+            
+            // Manual DOM creation
+            let created = 0;
+            
+            if (!document.getElementById('sidebar')) {
+                const sidebar = document.createElement('aside');
+                sidebar.id = 'sidebar';
+                sidebar.className = 'sidebar';
+                sidebar.style.cssText = 'position: fixed; top: 0; right: 0; width: 400px; height: 100vh; background: #fff; border-left: 1px solid #ddd; z-index: 1000; padding: 20px;';
+                sidebar.innerHTML = '<h3>🏪 Sidebar (Recovered)</h3><div id="invoice-list"><p>Invoice list recovered</p></div>';
+                document.body.appendChild(sidebar);
+                created++;
+                log('✅ Sidebar recovered');
+            }
+
+            if (!document.getElementById('menu-grid')) {
+                const menuGrid = document.createElement('div');
+                menuGrid.id = 'menu-grid';
+                menuGrid.className = 'menu-grid';
+                menuGrid.style.cssText = 'display: grid; padding: 20px; min-height: 200px;';
+                menuGrid.innerHTML = '<div style="text-align: center; padding: 40px; background: #f0f9ff; border-radius: 8px;"><h3>📋 Menu Grid (Recovered)</h3><p>Menu system successfully recovered</p></div>';
+                document.body.appendChild(menuGrid);
+                created++;
+                log('✅ Menu Grid recovered');
+            }
+
+            if (!document.getElementById('current-order')) {
+                const currentOrder = document.createElement('div');
+                currentOrder.id = 'current-order';
+                currentOrder.className = 'current-order';
+                currentOrder.style.cssText = 'padding: 20px; background: #f9f9f9; border-radius: 8px; margin: 20px;';
+                currentOrder.innerHTML = '<h4>🛒 Current Order (Recovered)</h4><div id="order-total">Total: 0₫</div>';
+                document.body.appendChild(currentOrder);
+                created++;
+                log('✅ Current Order recovered');
+            }
+
+            // Create other missing elements
+            ['loading-screen', 'admin-dropdown', 'order-total'].forEach(id => {
+                if (!document.getElementById(id)) {
+                    const element = document.createElement('div');
+                    element.id = id;
+                    element.innerHTML = `<p>${id} (Force Recovered)</p>`;
+                    element.style.cssText = 'padding: 10px; margin: 5px; background: #e8f5e8; border-radius: 4px;';
+                    document.body.appendChild(element);
+                    created++;
+                    log(`✅ ${id} recovered`);
+                }
+            });
+
+            testResults.push({
+                title: 'Force Recovery',
+                status: 'success',
+                description: `Successfully force-recovered ${created} elements`,
+                details: `Created: ${created} missing elements through manual force recovery`
+            });
+
+            log(`Force recovery completed: ${created} elements created`, 'success');
+            updateStats();
+            displayTestResults();
+        }
+
+        function runFullVerification() {
+            log('🚀 Bắt đầu kiểm tra đầy đủ hệ thống...');
+            testResults = [];
+            
+            // Test 1: DOM Elements
+            checkDOMElements();
+            
+            // Test 2: Recovery System
+            checkRecoverySystem();
+            
+            // Test 3: System Health
+            updateStats();
+            
+            testResults.push({
+                title: 'System Health Assessment',
+                status: systemStats.systemHealth >= 80 ? 'success' : 
+                       systemStats.systemHealth >= 50 ? 'warning' : 'error',
+                description: `System health: ${systemStats.systemHealth.toFixed(1)}%`,
+                details: `Total Elements: ${systemStats.totalElements}\\nMissing: ${systemStats.missingElements}\\nRecovery Ready: ${systemStats.recoveryReady}`
+            });
+
+            displayTestResults();
+            log('✅ Kiểm tra đầy đủ hoàn thành', 'success');
+        }
+
+        function openMainApp() {
+            window.open('./index.html', '_blank');
+        }
+
+        // Load recovery scripts
+        function loadRecoveryScripts() {
+            const scripts = [
+                './debug-helper.js',
+                './js/app-initializer.js',
+                './emergency-recovery.js'
+            ];
+
+            scripts.forEach(src => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => log(`Loaded: ${src}`, 'success');
+                script.onerror = () => log(`Failed to load: ${src}`, 'error');
+                document.head.appendChild(script);
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 BalanCoffee System Verification Started');
+            loadRecoveryScripts();
+            
+            setTimeout(() => {
+                runFullVerification();
+            }, 2000);
+            
+            // Auto-refresh stats every 10 seconds
+            setInterval(updateStats, 10000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BalanCoffee Emergency Recovery</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f8ff;
+        }
+        .recovery-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin: 10px 0;
+        }
+        .error { color: #dc3545; }
+        .success { color: #28a745; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-danger { background: #dc3545; }
+        .btn-warning { background: #ffc107; color: black; }
+    </style>
+</head>
+<body>
+    <div class="recovery-panel">
+        <h1>🚨 BalanCoffee Emergency Recovery System</h1>
+        <p class="error">Hệ thống chính đang gặp lỗi nghiêm trọng. Recovery system sẽ kiểm tra và khôi phục.</p>
+    </div>
+
+    <div class="recovery-panel">
+        <h2>🔍 Kiểm Tra Hệ Thống</h2>
+        <div id="system-check">
+            <p>⏳ Đang kiểm tra...</p>
+        </div>
+        <button class="btn" onclick="runSystemCheck()">🔄 Kiểm Tra Lại</button>
+        <button class="btn btn-success" onclick="emergencyFix()">🛠️ Khôi Phục Khẩn Cấp</button>
+        <button class="btn btn-warning" onclick="recreateSystem()">🔧 Tái Tạo Hệ Thống</button>
+        <button class="btn btn-danger" onclick="resetEverything()">💥 Reset Toàn Bộ</button>
+    </div>
+
+    <div class="recovery-panel">
+        <h2>📊 Kết Quả</h2>
+        <div id="results">
+            <p>Chưa chạy kiểm tra nào.</p>
+        </div>
+    </div>
+
+    <div class="recovery-panel">
+        <h2>📝 Log</h2>
+        <div id="log-output" style="
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        "></div>
+    </div>
+
+    <script>
+        // Emergency logging system
+        const logBuffer = [];
+        
+        function log(level, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${level.toUpperCase()}: ${message}`;
+            logBuffer.push(entry);
+            
+            const logDiv = document.getElementById('log-output');
+            logDiv.innerHTML = logBuffer.join('<br>');
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(entry);
+        }
+
+        // Check what's actually available
+        function runSystemCheck() {
+            log('info', 'Starting emergency system check...');
+            
+            const results = {
+                document: !!document,
+                window: !!window,
+                console: !!console,
+                localStorage: typeof localStorage !== 'undefined',
+                sessionStorage: typeof sessionStorage !== 'undefined',
+                
+                // Check files existence
+                canAccessFiles: false,
+                scriptsLoaded: [],
+                elementsFound: [],
+                errorsDetected: []
+            };
+            
+            // Test basic DOM manipulation
+            try {
+                const testDiv = document.createElement('div');
+                testDiv.id = 'test-element';
+                document.body.appendChild(testDiv);
+                results.domManipulation = !!document.getElementById('test-element');
+                document.body.removeChild(testDiv);
+            } catch (error) {
+                results.domManipulation = false;
+                results.errorsDetected.push(`DOM Manipulation: ${error.message}`);
+            }
+            
+            // Check what's in window object
+            const windowObjects = Object.keys(window).filter(key => 
+                key.startsWith('balan') || 
+                key.includes('coffee') || 
+                key.includes('Coffee') ||
+                ['Utils', 'DataManager', 'UIManager', 'DOMHelper', 'OrderManager', 'ModalManager'].includes(key)
+            );
+            results.relevantWindowObjects = windowObjects;
+            
+            // Check for any script tags
+            const scripts = Array.from(document.querySelectorAll('script')).map(script => ({
+                src: script.src,
+                hasContent: !!script.textContent.trim(),
+                loaded: !script.src || script.readyState === 'complete' || !script.readyState
+            }));
+            results.scriptTags = scripts;
+            
+            // Check for any elements with BalanCoffee IDs
+            const potentialElements = [
+                'sidebar', 'menu-grid', 'invoice-list', 'loading-screen',
+                'admin-dropdown', 'current-order', 'order-total', 'order-modal'
+            ];
+            
+            potentialElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    results.elementsFound.push(id);
+                } else {
+                    // Check if element exists with different selector
+                    const byClass = document.querySelector(`.${id}`);
+                    const byAttribute = document.querySelector(`[data-id="${id}"]`);
+                    if (byClass || byAttribute) {
+                        results.elementsFound.push(`${id} (found by class/attribute)`);
+                    }
+                }
+            });
+            
+            log('info', 'System check completed');
+            displayResults(results);
+        }
+        
+        function displayResults(results) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = '<h3>📋 Kết Quả Kiểm Tra</h3>';
+            
+            // Basic capabilities
+            html += '<h4>🔧 Khả Năng Cơ Bản:</h4><ul>';
+            html += `<li class="${results.document ? 'success' : 'error'}">Document: ${results.document ? '✅' : '❌'}</li>`;
+            html += `<li class="${results.window ? 'success' : 'error'}">Window: ${results.window ? '✅' : '❌'}</li>`;
+            html += `<li class="${results.domManipulation ? 'success' : 'error'}">DOM Manipulation: ${results.domManipulation ? '✅' : '❌'}</li>`;
+            html += `<li class="${results.localStorage ? 'success' : 'error'}">LocalStorage: ${results.localStorage ? '✅' : '❌'}</li>`;
+            html += '</ul>';
+            
+            // BalanCoffee objects
+            html += '<h4>🏷️ BalanCoffee Objects:</h4>';
+            if (results.relevantWindowObjects.length > 0) {
+                html += '<ul>';
+                results.relevantWindowObjects.forEach(obj => {
+                    html += `<li class="success">✅ ${obj}</li>`;
+                });
+                html += '</ul>';
+            } else {
+                html += '<p class="error">❌ Không tìm thấy objects nào</p>';
+            }
+            
+            // Elements found
+            html += '<h4>📦 Elements Found:</h4>';
+            if (results.elementsFound.length > 0) {
+                html += '<ul>';
+                results.elementsFound.forEach(el => {
+                    html += `<li class="success">✅ ${el}</li>`;
+                });
+                html += '</ul>';
+            } else {
+                html += '<p class="error">❌ Không tìm thấy elements nào</p>';
+            }
+            
+            // Scripts
+            html += '<h4>📜 Scripts:</h4>';
+            if (results.scriptTags.length > 0) {
+                html += '<ul>';
+                results.scriptTags.forEach(script => {
+                    const status = script.loaded ? '✅' : '❌';
+                    const src = script.src || '(inline)';
+                    html += `<li class="${script.loaded ? 'success' : 'error'}">${status} ${src}</li>`;
+                });
+                html += '</ul>';
+            } else {
+                html += '<p class="warning">⚠️ Không tìm thấy script tags</p>';
+            }
+            
+            // Errors
+            if (results.errorsDetected.length > 0) {
+                html += '<h4>🚨 Errors:</h4><ul>';
+                results.errorsDetected.forEach(error => {
+                    html += `<li class="error">❌ ${error}</li>`;
+                });
+                html += '</ul>';
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        function emergencyFix() {
+            log('info', 'Starting emergency fix...');
+            
+            let fixCount = 0;
+            
+            // Create minimal Utils if missing
+            if (typeof window.Utils === 'undefined') {
+                window.Utils = {
+                    debugLog: (msg, data) => log('info', `Utils: ${msg}`),
+                    debugError: (msg, error) => log('error', `Utils: ${msg} - ${error}`),
+                    formatCurrency: (amount) => new Intl.NumberFormat('vi-VN').format(amount) + '₫',
+                    generateId: () => 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+                };
+                log('success', 'Created emergency Utils module');
+                fixCount++;
+            }
+            
+            // Create minimal DOMHelper if missing
+            if (typeof window.DOMHelper === 'undefined') {
+                window.DOMHelper = {
+                    findElement: (id) => document.getElementById(id),
+                    setElementContent: (el, content) => {
+                        const element = typeof el === 'string' ? document.getElementById(el) : el;
+                        if (element) element.textContent = content;
+                    },
+                    addClass: (el, className) => {
+                        const element = typeof el === 'string' ? document.getElementById(el) : el;
+                        if (element) element.classList.add(className);
+                    },
+                    removeClass: (el, className) => {
+                        const element = typeof el === 'string' ? document.getElementById(el) : el;
+                        if (element) element.classList.remove(className);
+                    }
+                };
+                log('success', 'Created emergency DOMHelper module');
+                fixCount++;
+            }
+            
+            // Create basic menu data
+            if (typeof window.menuData === 'undefined') {
+                window.menuData = [
+                    { id: 1, name: "Cà phê đen", price: 25000, category: "cafe-viet" },
+                    { id: 2, name: "Cà phê sữa", price: 30000, category: "cafe-viet" },
+                    { id: 3, name: "Trà đá", price: 15000, category: "tra-trai-cay" }
+                ];
+                log('success', 'Created emergency menu data');
+                fixCount++;
+            }
+            
+            // Create essential data structures
+            if (typeof window.orderData === 'undefined') {
+                window.orderData = { items: [], total: 0, customerId: null };
+                fixCount++;
+            }
+            
+            if (typeof window.customerData === 'undefined') {
+                window.customerData = [];
+                fixCount++;
+            }
+            
+            if (typeof window.invoiceData === 'undefined') {
+                window.invoiceData = [];
+                fixCount++;
+            }
+            
+            // Create essential functions
+            if (typeof window.toggleSidebar === 'undefined') {
+                window.toggleSidebar = function() {
+                    log('info', 'Toggle sidebar called');
+                    const sidebar = document.getElementById('sidebar');
+                    if (sidebar) {
+                        sidebar.classList.toggle('collapsed');
+                    }
+                };
+                fixCount++;
+            }
+            
+            log('success', `Emergency fix completed: ${fixCount} items fixed`);
+            
+            // Re-run check
+            setTimeout(runSystemCheck, 500);
+        }
+        
+        function recreateSystem() {
+            log('info', 'Recreating essential system components...');
+            
+            // Create a minimal HTML structure if missing
+            const requiredElements = [
+                { id: 'sidebar', tag: 'nav', className: 'sidebar' },
+                { id: 'menu-grid', tag: 'div', className: 'menu-grid' },
+                { id: 'invoice-list', tag: 'div', className: 'invoice-list' },
+                { id: 'loading-screen', tag: 'div', className: 'loading-screen' },
+                { id: 'admin-dropdown', tag: 'div', className: 'admin-dropdown' },
+                { id: 'current-order', tag: 'div', className: 'current-order' },
+                { id: 'order-total', tag: 'span', className: 'order-total' }
+            ];
+            
+            let created = 0;
+            requiredElements.forEach(elementInfo => {
+                if (!document.getElementById(elementInfo.id)) {
+                    const element = document.createElement(elementInfo.tag);
+                    element.id = elementInfo.id;
+                    element.className = elementInfo.className;
+                    element.style.display = 'none'; // Hidden by default
+                    document.body.appendChild(element);
+                    log('success', `Created element: #${elementInfo.id}`);
+                    created++;
+                }
+            });
+            
+            if (created > 0) {
+                log('success', `Recreated ${created} missing elements`);
+            } else {
+                log('info', 'All required elements already exist');
+            }
+            
+            // Re-run emergency fix
+            emergencyFix();
+        }
+        
+        function resetEverything() {
+            if (confirm('⚠️ Bạn có chắc muốn reset toàn bộ? Điều này sẽ xóa tất cả dữ liệu!')) {
+                log('warning', 'Resetting everything...');
+                
+                // Clear storage
+                try {
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    log('success', 'Cleared all storage');
+                } catch (error) {
+                    log('error', `Failed to clear storage: ${error.message}`);
+                }
+                
+                // Reset window objects
+                const objectsToReset = [
+                    'Utils', 'DOMHelper', 'DataManager', 'UIManager', 'OrderManager', 
+                    'ModalManager', 'menuData', 'orderData', 'customerData', 'invoiceData',
+                    'balanCoffeeDiagnostics', 'balanCoffeeDebug', 'debugUtils'
+                ];
+                
+                objectsToReset.forEach(obj => {
+                    if (window[obj]) {
+                        delete window[obj];
+                        log('info', `Removed: ${obj}`);
+                    }
+                });
+                
+                log('warning', 'Reset completed. You may need to reload the page.');
+                
+                setTimeout(() => {
+                    if (confirm('Reload page now?')) {
+                        location.reload();
+                    }
+                }, 1000);
+            }
+        }
+        
+        // Auto-run initial check
+        log('info', 'Emergency Recovery System started');
+        setTimeout(runSystemCheck, 500);
+    </script>
+</body>
+</html>
